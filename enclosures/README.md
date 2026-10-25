@@ -66,3 +66,9 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 ## Standing on its own
 
 The flat bottom end is the foot. The ballast tray (36 x 32 x 18 mm, bottom left inside the base) holds roughly 180 g of steel washers or lead shot, which lowers the centre of mass. Estimated tip angle: about 8 degrees without ballast and about 14 degrees with it, so it stands on a desk but a pull on the cable can topple it. Put a non-slip strip on the end face and keep the cables slack.
+
+## Drawings and CAD exchange files
+
+* `python make_drawings.py` writes the dimensioned orthographic views (front, left, top end, back) to `docs/chapter3/figures/fig_enclosure_ortho_1.png` and `_2.png` from the same model that is printed.
+* `python export_step.py` writes the coloured STEP assembly (opened and checked in SolidWorks Design Premium 2026: 30 solid bodies). `python export_colour_mesh.py` writes a coloured STL (VisCAM attribute colours) and 3MF; these two were not tested in SolidWorks.
+* The method and the SolidWorks screenshots are documented in section 3.3 of `docs/Chapter3_Research_Methodology_Full.docx`.

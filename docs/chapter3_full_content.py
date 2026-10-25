@@ -17,7 +17,7 @@ tr = pd.read_csv(Path("/tmp/claude-0/data/runs/person_ft/results.csv")); tr.colu
 gidx = pd.read_csv(R / "gunshot_index.csv")
 afr = pd.read_csv(R / "african_test_set.csv").set_index("ImageID")
 
-FIGS = ["arch", "logic", "ls", "labels", "field", "audio", "curves", "prf1", "confimg", "size", "examples", "gunpr", "gunconf", "noise", "dash"]
+FIGS = ["arch", "logic", "ortho1", "ortho2", "swback", "swfront", "ls", "labels", "field", "audio", "curves", "prf1", "confimg", "size", "examples", "gunpr", "gunconf", "noise", "dash"]
 FN = {k: f"3.{i + 1}" for i, k in enumerate(FIGS)}
 f = lambda x, d=3: f"{x:.{d}f}"
 p1 = lambda x: f"{x * 100:.1f}"
@@ -69,6 +69,52 @@ table("Table 3.1: Detectors in the laptop prototype", ["Function", "Input", "Mod
 ], [1.1, 1.3, 1.7, 2.4], 9)
 p(f"The person rule in Table 3.1 means that the vision model does not need to recognise poachers as such. It only needs to find people reliably, and the BLE check decides whether the person is authorised, as shown in Figure {FN['logic']}. The quality of the whole intrusion function therefore depends on the recall of the person detector and on the reliability of the tag reading. The gunshot function depends on the ability of the audio model to separate gunshots from other impulsive sounds that occur in the bush, such as thunder, breaking branches and fireworks. These two models were the subject of the training and evaluation experiments described in the rest of this chapter.")
 fig(f"Figure {FN['logic']}: Decision logic of the alert engine", "chapter3/figures/fig3_2_alert_logic.png", 5.4)
+
+ENC_START = len(C)
+h3("3.3.1 Enclosure requirements")
+p("The laptop prototype described above needed a physical housing before it could be tested outdoors, because loose boards and cables cannot be fixed to a tree or protected from handling. The enclosure was therefore treated as a second artefact within the design science approach of Section 3.1 and was developed in five steps: requirements, concept, parametric modelling, digital verification and validation in independent computer-aided design (CAD) software. Each step left a file in the project repository, so the geometry can be regenerated and every dimension in this section can be traced to the model that produced it. The requirements were set at the start of the work and were refined as each iteration exposed a problem. Table 3.2 lists them together with the design response to each.")
+table("Table 3.2: Enclosure requirements and the design response to each", ["Requirement", "Design response"], [
+    ["Body 150 mm high, 100 mm wide and 45 mm deep", "Walls of 2.6 mm and a back plate of 4.5 mm give a cavity of 144.8 x 94.8 x 37.9 mm inside a body that measures exactly 150 x 100 x 45 mm"],
+    ["Mounted on a tree trunk in portrait orientation", "Four strap lugs on the back plate, each with a 30 x 5 mm window for a 25 mm strap, and four rubber-foot pockets that grip the bark"],
+    ["Able to stand on its own end", "Flat bottom end and a ballast tray that holds about 180 g of steel washers or lead shot to lower the centre of mass"],
+    ["Flame sensor visible from outside", "Round hole of 6.8 mm diameter in the front face, through which the 5 mm infrared sensor head projects 6 mm"],
+    ["ESP32 programmable and powered without opening the casing", "Port of 22 x 9 mm in the side wall, lined up with the micro-USB socket of the board"],
+    ["Webcam connected directly to the laptop", "No pass-through for the webcam lead. The webcam stands on a recessed deck at the top end and is held by four cable ties"],
+    ["Printable on a desktop printer without support material", "Two parts: the shell is printed with its roof on the bed and the base plate is printed flat"],
+    ["Boards fit with clearance", "Clearance of 0.35 mm around each board and automatic overlap checks on the model"],
+], [1.8, 3.6], 9)
+h3("3.3.2 Design methodology")
+p("The casing was modelled parametrically instead of being drawn by hand. A Python script built every solid from named parameters (wall thickness, plate thickness, corner radius, fit clearance, cavity size and the positions of the ports and the sensor hole) and combined the solids with Boolean union and difference operations in the Manifold geometry engine, accessed through the trimesh library. Because the outer size is derived from the parameters, a change such as a thicker wall or a different board size regenerates the shell, the base plate and the fit checks in one run. The same script exports the two printable parts as STL files, and a second script places stand-in models of the boards, webcam, cables, screws and feet at the positions that the casing expects.")
+p("The ESP32 DevKit V1 (30-pin version) was modelled as a board 51.5 mm long, 28.5 mm wide and 1.6 mm thick with pins 10 mm long, and the flame sensor module as a board 32 mm long, 14 mm wide and 1.6 mm thick. These are typical catalogue values and were not measured on the boards used in the study. [DETAIL REQUIRED: measured length, width and pin height of the ESP32 board and the flame module used.] A clearance of 0.35 mm was left around each board so that small differences between supplier batches would not prevent assembly.")
+p("Four design iterations were completed. The first model was a flat case that stood on a table, with a narrow slit in front of the flame sensor and a cable port in the rear wall. The second iteration changed the body to a portrait shape for mounting on a tree, added four strap lugs to the back plate and replaced the slit with a round hole so that the infrared sensor head projects out of the casing. In the third iteration the ESP32 port was moved to the side wall, in line with the micro-USB socket of the board, the pass-through for the webcam lead and the ventilation slots were removed, and the outer size was fixed at 150 x 100 x 45 mm. The fourth iteration added the ballast tray after a stability estimate showed that the unit would tip too easily when standing on its end. A removable stand foot was also modelled and was then dropped, because the casing was required to stand without a separate part.")
+p("The back plate and the shell are separate parts joined by four M3 screws driven from the tree side, and a locating lip on the plate centres the shell and keeps the joint aligned. Mounting the webcam outside the casing keeps the body sealed apart from the sensor hole and one port, and the webcam lead runs directly to the laptop. The principal dimensions that result from these decisions are given in Table 3.3.")
+table("Table 3.3: Principal dimensions of the enclosure (millimetres)", ["Feature", "Dimension"], [
+    ["Body (height x width x depth)", "150 x 100 x 45"],
+    ["Width over the strap lugs", "136"],
+    ["Height including the webcam stand-in", "about 183"],
+    ["Shell (printed part)", "150 x 100 x 40.5"],
+    ["Base plate with lugs (printed part)", "150 x 136 x 29.5"],
+    ["Wall thickness, back plate thickness, corner radius", "2.6, 4.5 and 7"],
+    ["Strap lug (length x projection x thickness) and window", "44 x 18 x 6 and 30 x 5"],
+    ["Sensor hole and height above the bottom end", "diameter 6.8 at 102.4"],
+    ["ESP32 port and height of its lower edge above the bottom end", "22 x 9 at 11.6"],
+    ["Camera deck recess (width x depth x depth of recess)", "50 x 26 x 0.8"],
+    ["Screws and rubber feet", "4 x M3 x 16 and 4 x diameter 10 pockets"],
+    ["Ballast tray", "36 x 32 x 18"],
+], [3.2, 2.2], 9)
+h3("3.3.3 Digital verification")
+p("Two kinds of automatic check were run each time the model was regenerated. The first confirmed that both printed parts were watertight solids, and the second measured the volume of overlap between each stand-in component and the shell and base plate. The ESP32 board, flame module, USB plug, webcam, cable ties and rubber feet all showed 0.0 mm3 of overlap, which means that every component fits inside the space provided. Each of the four screws overlapped the shell by 24.2 mm3, which represents the intended thread engagement of an M3 screw in its pilot hole and is not an error.")
+p("The centre lines of the two USB leads were also tested against the walls. The ESP32 lead stayed at least 11.5 mm from any solid, and the webcam lead, which has a radius of 2.2 mm, kept a minimum clearance of 2.32 mm where it passes the rounded corner of the shell, so it does not touch the casing. Mass and stability were estimated from the model volumes, assuming PETG at 1.27 g/cm3 and 20 per cent infill. The two printed parts came to about 170 g, and the centre of mass lay about 106 mm above the bottom end without ballast and about 75 mm with 180 g of ballast, which raised the estimated tip angle from 8 to 14 degrees. These are estimates and the margin is small, so the unit stands on a level surface but can be toppled by a pull on a cable. [RESULT REQUIRED: measured mass of the printed parts and the angle at which the printed unit tips.]")
+h3("3.3.4 Orthographic views")
+p(f"Orthographic views were produced from the same model that is printed, so the drawings cannot disagree with the geometry. Figure {FN['ortho1']} shows the front view from the weather side and the left view from the side wall that carries the USB port. Figure {FN['ortho2']} shows the top end, where the camera deck is cut, and the back view from the tree side, which shows the strap windows, the screw holes and the rubber-foot pockets. The shaded outline above the casing is the webcam stand-in, which is not part of the printed casing.")
+fig(f"Figure {FN['ortho1']}: Front and left orthographic views of the field node enclosure with dimensions in millimetres", "chapter3/figures/fig_enclosure_ortho_1.png", 6.0)
+fig(f"Figure {FN['ortho2']}: Top end and back orthographic views of the field node enclosure with dimensions in millimetres", "chapter3/figures/fig_enclosure_ortho_2.png", 6.0)
+h3("3.3.5 Validation in SolidWorks")
+p(f"The assembly was exported from the model as a STEP file with 32 named and coloured parts and was opened in SolidWorks Design Premium 2026 SP0.0 and saved as a part file. The feature tree listed 30 solid bodies, which matches the 30 solid parts in the export, and the two USB leads were carried over as swept tubes. The colours and shapes were preserved, which shows that the exchange file can be used for further CAD work such as manufacturing drawings or finite element analysis. Figure {FN['swback']} shows the imported model from the tree side, with the base plate, the strap lugs and the rubber feet, and Figure {FN['swfront']} shows it from the weather side, with the sensor hole in the shell and the webcam on the top end.")
+fig(f"Figure {FN['swback']}: Enclosure assembly imported into SolidWorks, seen from the tree side", "chapter3/figures/fig_solidworks_back.png", 5.8)
+fig(f"Figure {FN['swfront']}: Enclosure assembly imported into SolidWorks, seen from the weather side", "chapter3/figures/fig_solidworks_front.png", 5.8)
+p("The enclosure had not been printed at the time of writing, so the fit of the real boards, the strength of the strap lugs and the behaviour of the unit on a trunk remain to be tested. [RESULT REQUIRED: printer and material used, print time, whether the boards and webcam fitted without modification, and the result of a strap test on a trunk.] The parameters in the generating script are the means of correcting any mismatch, because a changed dimension regenerates all parts and checks. Any such change is recorded in the repository history, so later versions of the casing can be compared with the one described here.")
+ENC_END = len(C)
 
 h2("3.4 Data collection")
 h3("3.4.1 Image data for person detection")
@@ -267,3 +313,20 @@ h2("Image credits")
 ids = ["811c1136b815cc28", "646b5e7801b64a50", "4142ef0217d47a2d", "01f26ca52e27a8d9", "7c0c635959d1b8c9", "a34bd8df20a43c97", "1525b8b93964df9e"]
 for i in sorted(ids, key=lambda i: afr.loc[i].Author):
     r_ = afr.loc[i]; ref(f"{r_.Author}. {html.unescape(str(r_.Title))} [Photograph]. Flickr, via Open Images (image {i}). Licence: CC BY 2.0. {r_.OriginalLandingURL}")
+
+
+# ----- the enclosure section above adds Tables 3.2 and 3.3, so every later table moves up by two -----
+import re as _re
+def _bump(t):
+    def one(m):
+        n = int(m.group(2)); out = m.group(1) + (f"3.{n + 2}" if n >= 2 else m.group(2) and f"3.{n}")
+        if m.group(3): out += m.group(3).replace(f"3.{m.group(4)}", f"3.{int(m.group(4)) + 2}") if int(m.group(4)) >= 2 else m.group(3)
+        return out
+    return _re.sub(r"(Tables? )3\.(\d+)((?: and | to )3\.(\d+))?", one, t)
+def _walk(x):
+    if isinstance(x, str): return _bump(x)
+    if isinstance(x, list): return [_walk(i) for i in x]
+    if isinstance(x, tuple): return tuple(_walk(i) for i in x)
+    return x
+for _i in range(ENC_END, len(C)):
+    if C[_i][0] in ("p", "table", "fig", "slot"): C[_i] = _walk(C[_i])
