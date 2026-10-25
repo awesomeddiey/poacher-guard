@@ -94,7 +94,7 @@ def test_flame_alert_uses_node_location_and_offline(tmp_path):
     eng, reg, clock, pub = make(tmp_path)
     assert eng.on_flame("FLAME-01", False) is None
     ev = eng.on_flame("FLAME-01", True, 120)
-    assert ev["type"] == "fire" and ev["lat"] == -17.8301
+    assert ev["type"] == "fire" and ev["lat"] == load_config()["flame"]["nodes"][0]["lat"]
     assert eng.node_status()[0]["fire"] is True
     clock.t += 31
     st = eng.node_status()[0]
