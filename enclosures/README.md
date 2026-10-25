@@ -11,7 +11,6 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 | File (`stl/`) | What | Colour | Size (mm) |
 |---|---|---|---|
 | `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
-| `field_node_stand.stl` | optional stand foot: the bottom end drops into its pocket so the node stands upright (130 x 120 mm footprint) | light blue | 16 x 130 x 120 |
 | `field_node_base.stl` | back plate with strap lugs, board supports and flame-module post | blue | 150 x 136 x 29.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
@@ -45,7 +44,7 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 2. Drop the ESP32 onto the four blocks (USB end towards the right side wall). Add a dab of hot glue on one block.
 3. Plug in the ESP32 USB cable, lead the ESP32 lead out of the right side port, set the shell over the back plate and fit the four screws from the tree side. Then strap the unit to the trunk, camera end up.
 4. Zip-tie the webcam to the top-end deck and let its lead run down the outside to the PC.
-5. To stand it up, press the bottom end into the stand foot (add a dab of hot glue if you want it permanent). To mount it on a tree, leave the foot off and strap it through the four lugs.
+5. To stand it up, put it on its bottom end (stick a non-slip rubber strip on that face) and drop about 180 g of steel washers or lead shot into the ballast tray before closing the shell. To mount it on a tree, strap it through the four lugs instead.
 
 ## Check before printing (measure with callipers)
 * Boards differ a little between makers. Edit `ESP`, `FLAME`, `PAD` and the inner size `XIN, YIN, ZIN` at the top of `make_field_node.py`, then run it again.
@@ -60,3 +59,7 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 ## Assembly animation
 
 `assembly.html` is a self-contained 3D viewer (no internet needed): ten steps, play/pause, scrub, speed, x-ray shell, drag to orbit. Rebuild with `python animation/build_animation.py` after changing any STL. Component models (ESP32 DevKit V1, flame module, USB webcam, cables, screws, zip ties, feet) are in `stl/components/`; they are stand-ins for fit checking, not for printing.
+
+## Standing on its own
+
+The flat bottom end is the foot. The ballast tray (36 x 32 x 18 mm, bottom left inside the base) holds roughly 180 g of steel washers or lead shot, which lowers the centre of mass. Estimated tip angle: about 8 degrees without ballast and about 14 degrees with it, so it stands on a desk but a pull on the cable can topple it. Put a non-slip strip on the end face and keep the cables slack.

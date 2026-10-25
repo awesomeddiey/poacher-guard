@@ -40,8 +40,8 @@ XO0, XO1, YO0, YO1 = -WALL, XIN + WALL, -WALL, YIN + WALL
 YC = YIN / 2
 XH = XIN - 45.0                                  # IR sensor head position (x); y = YC
 CORN = [(XO0 + R, YO0 + R), (XO1 - R, YO0 + R), (XO0 + R, YO1 - R), (XO1 - R, YO1 - R)]
+BALLAST = dict(x0=4.0, x1=40.0, y0=6.0, y1=38.0, h=18.0)
 BOSSES = [(XIN * 0.3, 0.4), (XIN * 0.75, 0.4), (XIN * 0.3, YIN - 0.4), (XIN * 0.75, YIN - 0.4)]
-STAND = dict(T=6.0, depth=10.0, wall=3.0, W=130.0, Dz=120.0, gap=0.35)   # stand foot: plate thickness, pocket depth, pocket wall, footprint (y, z), clearance
 
 
 def B(x0, x1, y0, y1, z0, z1): return box(extents=[x1 - x0, y1 - y0, z1 - z0], transform=tr([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2]))
@@ -121,6 +121,9 @@ def base(bosses):
     # tall post for the flame module: a rib under the head end and a pillar at the far end
     fx1 = XH + 3.0; fx0 = fx1 - FLAME["L"]; fy0, fy1 = YC - FLAME["W"] / 2, YC + FLAME["W"] / 2
     parts += [B(fx1 - 11, fx1 - 8, fy0, fy1, 0, FLAME["post"]), Cz(fx0 + 3.0, fy0 + 3.0, 0, FLAME["post"], 3.6), B(fx0, fx0 + 6, fy0, fy0 + 6, 0, 0.5) if False else Cz(fx0 + 3.0, fy0 + 3.0, 0, 1, 6)]
+    # ballast tray (bottom end, left of the ESP32): holds about 180 g of steel washers or lead shot so the node stands on its own end
+    bx0, bx1, by0, by1, bh, bw = BALLAST["x0"], BALLAST["x1"], BALLAST["y0"], BALLAST["y1"], BALLAST["h"], 1.6
+    parts.append(D(B(bx0, bx1, by0, by1, 0, bh), [B(bx0 + bw, bx1 - bw, by0 + bw, by1 - bw, 0.0, bh + 1)]))
     cuts, plans = [], []
     for xc in LUG["xs"]:
         for side in (-1, 1):
@@ -133,35 +136,20 @@ def base(bosses):
     return D(b, cuts), dict(esp_x=(ESP_XC - Wd / 2, ESP_XC + Wd / 2), flame=(fx0, fx1), lugs=LUG["xs"])
 
 
-def stand():
-    """Stand foot: a flat plate under the bottom end with a pocket the casing drops into, so the node stands upright (150 mm tall)."""
-    g, wl, d, T = STAND["gap"], STAND["wall"], STAND["depth"], STAND["T"]
-    cyl = lambda y, z, r, x0, x1: cylinder(radius=r, height=x1 - x0, sections=48, transform=tr([(x0 + x1) / 2, y, z]) @ rot(np.pi / 2, [0, 1, 0]))
-    def section(grow, x0, x1):          # the casing's outline in the y-z plane (rounded roof edge, small radius on the plate side), grown by "grow"
-        ya, yb, za, zb_ = YO0 - g - grow, YO1 + g + grow, -PLATE - g - grow, HS + g + grow; rt, rp = R + g + grow, 1.0 + grow
-        return hull([cyl(ya + rp, za + rp, rp, x0, x1), cyl(yb - rp, za + rp, rp, x0, x1), cyl(ya + rt, zb_ - rt, rt, x0, x1), cyl(yb - rt, zb_ - rt, rt, x0, x1)])
-    zc = (-PLATE + HS) / 2; Wy, Dz = STAND["W"], STAND["Dz"]
-    foot = hull([cyl(YC + sy * (Wy / 2 - 12), zc + sz * (Dz / 2 - 12), 12, XO0 - T, XO0) for sy in (-1, 1) for sz in (-1, 1)])
-    st = U([foot, section(wl, XO0 - 0.01, XO0 + d)])
-    st = D(st, [section(0.0, XO0, XO0 + d + 1), Cz(YC, zc, 0, 0, 1) if False else cyl(YC, zc, 6.0, XO0 - T - 1, XO0 + 0.5)])   # centre hole: lets the pocket drain
-    return st
-
-
 def main():
     sh, bosses = shell(); bs, info = base(bosses)
-    st = stand(); st.export(OUT / "stl" / "field_node_stand.stl")
     sh.export(OUT / "stl" / "field_node_shell.stl"); bs.export(OUT / "stl" / "field_node_base.stl")
     sp = sh.copy(); sp.apply_transform(rot(np.pi, [1, 0, 0])); sp.apply_translation([0, 0, -sp.bounds[0][2]]); sp.export(OUT / "stl" / "field_node_shell_print_orientation.stl")
     rep = {}
-    for n, m in (("shell", sh), ("base", bs), ("stand", st)): rep[n] = dict(watertight=bool(m.is_watertight), size_mm=[round(x, 1) for x in m.extents], volume_cm3=round(m.volume / 1000, 1))
+    for n, m in (("shell", sh), ("base", bs)): rep[n] = dict(watertight=bool(m.is_watertight), size_mm=[round(x, 1) for x in m.extents], volume_cm3=round(m.volume / 1000, 1))
     # fit check: dummy ESP32 and flame module placed as designed must not touch the shell, and shell and base must not overlap
     fx0, fx1 = info["flame"]; ex0w, ex1w = info["esp_x"]; zb = ESP["pins"]; yp1 = YIN - (1.5 + FIT); yp0 = yp1 - ESP["L"]
     esp = U([B(ex0w, ex1w, yp0, yp1, zb, zb + ESP["T"]), B(ex0w + 4, ex1w - 4, yp0 + 6, yp0 + 38, zb + ESP["T"], zb + ESP["T"] + 4.5), B(ESP_XC - 4.5, ESP_XC + 4.5, yp1 - 6, yp1 + 1.6, zb + ESP["T"], zb + ESP["T"] + 3.0)])
     zf = FLAME["post"]; fy0, fy1 = YC - FLAME["W"] / 2, YC + FLAME["W"] / 2
     fl = U([B(fx0, fx1, fy0, fy1, zf, zf + FLAME["T"]), Cz(XH, YC, zf + FLAME["T"], HS + FLAME["poke"], 2.5)])
     ov = lambda a, b: trimesh.boolean.intersection([a, b], engine="manifold").volume
-    rep["fit_check_mm3"] = dict(shell_vs_base=round(ov(sh, bs), 2), esp_vs_shell=round(ov(esp, sh), 2), flame_vs_shell=round(ov(fl, sh), 2), esp_vs_base=round(ov(esp, bs), 2), stand_vs_shell=round(ov(st, sh), 2), stand_vs_base=round(ov(st, bs), 2), flame_vs_base=round(ov(fl, bs), 2))
-    tot = trimesh.util.concatenate([sh, bs, st]); rep["assembled_mm"] = [round(x, 1) for x in tot.extents]; rep["layout"] = info
+    rep["fit_check_mm3"] = dict(shell_vs_base=round(ov(sh, bs), 2), esp_vs_shell=round(ov(esp, sh), 2), flame_vs_shell=round(ov(fl, sh), 2), esp_vs_base=round(ov(esp, bs), 2), flame_vs_base=round(ov(fl, bs), 2))
+    tot = trimesh.util.concatenate([sh, bs]); rep["assembled_mm"] = [round(x, 1) for x in tot.extents]; rep["layout"] = info
     (OUT / "report.json").write_text(json.dumps(rep, indent=1)); print(json.dumps(rep, indent=1))
 
 

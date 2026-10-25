@@ -15,30 +15,19 @@
    136.0,
    29.5
   ],
-  "volume_cm3": 86.3
- },
- "stand": {
-  "watertight": true,
-  "size_mm": [
-   16.0,
-   130.0,
-   120.0
-  ],
-  "volume_cm3": 101.0
+  "volume_cm3": 90.0
  },
  "fit_check_mm3": {
   "shell_vs_base": 0.0,
   "esp_vs_shell": 0.0,
   "flame_vs_shell": 0.0,
   "esp_vs_base": 0.0,
-  "stand_vs_shell": -0.0,
-  "stand_vs_base": 0.0,
   "flame_vs_base": 0.0
  },
  "assembled_mm": [
-  156.0,
+  150.0,
   136.0,
-  120.0
+  45.0
  ],
  "layout": {
   "esp_x": [

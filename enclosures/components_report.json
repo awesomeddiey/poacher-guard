@@ -39,6 +39,10 @@
   "shell_mm3": 0.0,
   "base_mm3": 0.0
  },
+ "ballast": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
  "screw_1": {
   "shell_mm3": 24.2,
   "base_mm3": 0.0

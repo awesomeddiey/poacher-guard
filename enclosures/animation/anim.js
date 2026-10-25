@@ -19,7 +19,7 @@ const GROUPS = [
   { match: (n) => n.startsWith("webcam_"), t0: 17.8, t1: 19.8, from: [110, 0, 0] },
   { match: (n) => n === "zip_ties", t0: 20.1, t1: 20.9, from: [12, 0, 0], fade: true },
   { match: (n) => n === "cam_usb_cable", t0: 21.2, t1: 22.2, from: [-14, 0, 0], fade: true },
-  { match: (n) => n === "stand", t0: 23.0, t1: 24.6, from: [-70, 0, 0] },
+  { match: (n) => n === "ballast", t0: 3.9, t1: 4.2, from: [0, 0, 60], fade: true },
 ];
 const STEPS = [
   [0.0, "Base plate", "Blue back plate (this side goes on the tree): four strap lugs with 30 x 5 mm windows, hidden M3 holes, board blocks, a tall post for the flame module and four rubber-foot pockets."],
@@ -31,8 +31,7 @@ const STEPS = [
   [14.2, "Screws and feet", "Four M3 x 16 screws from the tree side, then four rubber feet. The strap lugs sit left and right."],
   [17.8, "USB webcam on the deck", "The clip base sits in the 50 x 26 mm recess on the top end wall. The lens faces away from the tree, like the IR sensor."],
   [20.1, "Zip ties and webcam cable", "Ties go through the four deck slots. The webcam lead needs no hole: it runs down the outside of the casing straight to the PC."],
-  [23.0, "Stand foot", "Optional foot: the bottom end drops into its pocket so the node stands upright on a table or the ground, 150 mm tall. Leave it off when strapping to a tree."],
-  [25.4, "Done", "Stand it up, or strap it to a trunk through the four lugs (camera end up), plug both USB leads into the PC and run run-poacher-guard.bat."],
+  [22.6, "Done", "Stand it on its own end, or strap it to a trunk through the four lugs (camera end up), plug both USB leads into the PC and run run-poacher-guard.bat."],
 ];
 const CAM = [ // time, azimuth deg, elevation deg, distance, target
   [0, 40, 30, 328, [82, 55, 0]], [2.5, 28, 40, 296, [82, 55, 8]], [5, 62, 42, 281, [90, 60, 12]], [7.2, 165, 22, 335, [30, 30, 14]],

@@ -83,6 +83,10 @@
   "color": "#f8fafc",
   "triangles": 72
  },
+ "ballast": {
+  "color": "#6b7280",
+  "triangles": 12
+ },
  "screw_1": {
   "color": "#9ca3af",
   "triangles": 222
