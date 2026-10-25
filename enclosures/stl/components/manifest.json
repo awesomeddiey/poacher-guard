@@ -49,11 +49,11 @@
  },
  "esp_usb_cable": {
   "color": "#e5e7eb",
-  "triangles": 5440
+  "triangles": 6800
  },
  "cam_usb_cable": {
   "color": "#111827",
-  "triangles": 14960
+  "triangles": 16320
  },
  "webcam_base": {
   "color": "#111827",

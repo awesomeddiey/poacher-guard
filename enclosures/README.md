@@ -11,6 +11,7 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 | File (`stl/`) | What | Colour | Size (mm) |
 |---|---|---|---|
 | `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
+| `field_node_stand.stl` | optional stand foot: the bottom end drops into its pocket so the node stands upright (130 x 120 mm footprint) | light blue | 16 x 130 x 120 |
 | `field_node_base.stl` | back plate with strap lugs, board supports and flame-module post | blue | 150 x 136 x 29.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
@@ -18,8 +19,8 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 
 ## Features
 * **Front (away from the tree):** a round hole through which the IR flame sensor head pokes out 6 mm.
-* **Top end:** a camera deck (50 x 26 mm recess) with four zip-tie slots and a cable hole just below it; the webcam stands on it with its lens facing away from the tree.
-* **Bottom end:** two ports, 22 x 9 mm lined up with the ESP32 micro-USB socket and 14 x 9 mm for the webcam lead. Cables hang down so rain runs off.
+* **Top end:** a camera deck (50 x 26 mm recess) with four zip-tie slots; the webcam stands on it with its lens facing away from the tree.
+* **Right side wall:** one 22 x 9 mm port lined up with the ESP32 micro-USB socket (the board lies with its USB end facing it) and eight vent slots. There is no port for the webcam: it plugs straight into the PC and its lead runs down the outside.
 * **Back plate (against the tree):** four strap lugs (two each side) with 30 x 5 mm windows for a 25 mm strap or ratchet strap, four rubber-foot pockets to grip the bark, four hidden M3 screws from the tree side.
 * **Left side:** seven vent slots. **Right side:** engraved POACHER GUARD wordmark.
 * The report checks that the parts do not overlap and that the boards clear every wall (0 mm3 overlap).
@@ -41,9 +42,10 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 
 ## Assembly
 1. Fix the flame module on its post with one M3 x 6 self-tapping screw, sensor head poking through the front hole.
-2. Drop the ESP32 onto the four blocks (USB end towards the bottom wall). Add a dab of hot glue on one block.
-3. Plug in both USB cables, lead them out of the bottom ports, set the shell over the back plate and fit the four screws from the tree side. Then strap the unit to the trunk, camera end up.
-4. Zip-tie the webcam to the top-end deck and pass its cable through the hole below the deck to its own bottom port.
+2. Drop the ESP32 onto the four blocks (USB end towards the right side wall). Add a dab of hot glue on one block.
+3. Plug in the ESP32 USB cable, lead the ESP32 lead out of the right side port, set the shell over the back plate and fit the four screws from the tree side. Then strap the unit to the trunk, camera end up.
+4. Zip-tie the webcam to the top-end deck and let its lead run down the outside to the PC.
+5. To stand it up, press the bottom end into the stand foot (add a dab of hot glue if you want it permanent). To mount it on a tree, leave the foot off and strap it through the four lugs.
 
 ## Check before printing (measure with callipers)
 * Boards differ a little between makers. Edit `ESP`, `FLAME`, `PAD` and the inner size `XIN, YIN, ZIN` at the top of `make_field_node.py`, then run it again.

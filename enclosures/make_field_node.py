@@ -29,21 +29,19 @@ XIN, YIN, ZIN = OUT_X - 2 * WALL, OUT_Y - 2 * WALL, OUT_Z - PLATE - WALL   # inn
 ESP = dict(L=51.5, W=28.5, T=1.6, pins=10.0)     # ESP32 DevKit V1: pins point down, board sits on 10 mm blocks
 FLAME = dict(L=32.0, W=14.0, T=1.6, post=25.0, poke=6.0)   # module hangs on a tall post; its IR head points at the roof and pokes "poke" mm out of it
 SENSOR_HOLE_R = 3.4                              # hole for the 5 mm IR sensor head
-ESP_X0, ESP_Y0 = 1.5, 12.0                       # ESP32 USB end at the bottom wall, left side
+ESP_XC = 20.0                                    # ESP32 centre line (x); its USB end points at the right side wall, where the port is
 PAD = (50.0, 26.0, 0.8)                          # camera deck on the TOP END wall: width (y), depth (z), recess
 PAD_CZ = 20.5                                    # z of the deck centre
-CAM_PORT_W = 14.0
-LUG = dict(L=44.0, out=18.0, T=6.0, win_l=30.0, win_w=5.0, xs=(28.0, XIN - 28.0))   # strap lugs: length along the trunk, projection, thickness, strap window (fits a 25 mm strap)
+LUG = dict(L=44.0, out=18.0, T=6.0, win_l=30.0, win_w=5.0, xs=(40.0, XIN - 28.0))   # strap lugs: length along the trunk, projection, thickness, strap window (fits a 25 mm strap)
 WORDMARK = "POACHER GUARD"
 # ---------------------------------------------------------------------------
 HS = ZIN + WALL                                  # shell height above the opening plane (z = 0)
 XO0, XO1, YO0, YO1 = -WALL, XIN + WALL, -WALL, YIN + WALL
 YC = YIN / 2
-ESP_CY = ESP_Y0 + ESP["W"] / 2                   # ESP32 USB socket centre (y)
 XH = XIN - 45.0                                  # IR sensor head position (x); y = YC
-CAM_HY = YC + 12                                 # where the webcam cable goes through the top wall (y)
 CORN = [(XO0 + R, YO0 + R), (XO1 - R, YO0 + R), (XO0 + R, YO1 - R), (XO1 - R, YO1 - R)]
-BOSSES = [(XIN * 0.25, 0.4), (XIN * 0.75, 0.4), (XIN * 0.25, YIN - 0.4), (XIN * 0.75, YIN - 0.4)]
+BOSSES = [(XIN * 0.3, 0.4), (XIN * 0.75, 0.4), (XIN * 0.3, YIN - 0.4), (XIN * 0.75, YIN - 0.4)]
+STAND = dict(T=6.0, depth=10.0, wall=3.0, W=130.0, Dz=120.0, gap=0.35)   # stand foot: plate thickness, pocket depth, pocket wall, footprint (y, z), clearance
 
 
 def B(x0, x1, y0, y1, z0, z1): return box(extents=[x1 - x0, y1 - y0, z1 - z0], transform=tr([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2]))
@@ -78,15 +76,15 @@ def shell():
     sh = D(outer, [inner])
     # round hole in the roof for the IR flame sensor head, which pokes out; soft bevel on the outside
     sh = D(sh, [Cz(XH, YC, HS - WALL - 1, HS + 1, SENSOR_HOLE_R), hull([Cz(XH, YC, HS - 1.6, HS - 1.59, SENSOR_HOLE_R), Cz(XH, YC, HS - 0.01, HS + 0.5, SENSOR_HOLE_R + 1.8)])])
-    # bottom end wall: ports lined up with the ESP32 micro-USB socket and for the webcam lead (cables hang down, so rain runs off)
-    sh = D(sh, [stadium_x(ESP_CY, 12.5, 22.0, 9.0, XO0 - 1, 1.0), stadium_x(CAM_HY - 1, 12.6, CAM_PORT_W, 9.0, XO0 - 1, 1.0)])
-    # vents on the right side wall: 11 slots
-    sh = D(sh, [B(XIN / 2 + (i - 5) * 6.0 - 1.0, XIN / 2 + (i - 5) * 6.0 + 1.0, YIN - 1.0, YO1 + 1, 6.0, 30.0) for i in range(11)])
-    # camera deck on the TOP END wall: shallow recess, four zip-tie slots, cable hole just below it
+    # side port on the right wall, lined up with the ESP32 micro-USB socket (the webcam plugs straight into the PC, so it needs no port)
+    sh = D(sh, [stadium_y(ESP_XC, 12.5, 22.0, 9.0, YIN - 1.0, YO1 + 1)])
+    # vents on the right side wall: 8 slots
+    sh = D(sh, [B(60.0 + i * 6.0 - 1.0, 60.0 + i * 6.0 + 1.0, YIN - 1.0, YO1 + 1, 6.0, 30.0) for i in range(8)])
+    # camera deck on the TOP END wall: shallow recess and four zip-tie slots
     pw, pd, pr = PAD
     sh = D(sh, [B(XO1 - pr, XO1 + 1, YC - pw / 2, YC + pw / 2, PAD_CZ - pd / 2, PAD_CZ + pd / 2)])
     ties = [B(XO1 - WALL - 1, XO1 + 1, YC + sx * (pw / 2 - 3.0) - 1.6, YC + sx * (pw / 2 - 3.0) + 1.6, PAD_CZ + sz * (pd / 2 - 3.0) - 1.9, PAD_CZ + sz * (pd / 2 - 3.0) + 1.9) for sx in (-1, 1) for sz in (-1, 1)]   # 3.2 x 3.8 mm slots for 2.5 mm cable ties
-    sh = D(sh, ties + [B(XO1 - WALL - 1, XO1 + 1, CAM_HY - 7, CAM_HY + 7, PAD_CZ - pd / 2 - 5.2, PAD_CZ - pd / 2 + 0.2)])
+    sh = D(sh, ties)
     # engraved wordmark on the left side wall (reads along the trunk)
     wm = wordmark_mesh(); wm.apply_translation([XIN / 2, YO0 - 1.0, 20.0]); sh = D(sh, [wm])
     # screw bosses on the side walls, ending below the rounded roof edge
@@ -116,9 +114,10 @@ def base(bosses):
     plate = rr(R, -PLATE, 0.0)
     ring = D(rr(R - WALL - FIT, 0.0, 2.4), [rr(R - WALL - FIT - 1.6, -1, 4.0)])                        # locating lip inside the shell
     parts = [plate, ring]
-    x0 = ESP_X0; x1 = x0 + ESP["L"] + 2 * FIT; ya0 = ESP_Y0; ya1 = ESP_Y0 + ESP["W"]
-    for ya, yb in ((ya0 - 3, ya0 - FIT / 2), (ya1 + FIT / 2, ya1 + 3)):
-        for xa, xb in ((x0, x0 + 5), (x1 - 5, x1)): parts.append(B(xa, xb, ya, yb, 0, ESP["pins"]))
+    # ESP32 guide blocks. Board frame: u across the width (0..W), v along the length from the USB end; world x = ESP_XC + W/2 - u, y = YIN - v
+    v0 = 1.5; v1 = v0 + ESP["L"] + 2 * FIT; Wd = ESP["W"]
+    for ua, ub in ((-3, -FIT / 2), (Wd + FIT / 2, Wd + 3)):
+        for va, vb in ((v0, v0 + 5), (v1 - 5, v1)): parts.append(B(ESP_XC + Wd / 2 - ub, ESP_XC + Wd / 2 - ua, YIN - vb, YIN - va, 0, ESP["pins"]))
     # tall post for the flame module: a rib under the head end and a pillar at the far end
     fx1 = XH + 3.0; fx0 = fx1 - FLAME["L"]; fy0, fy1 = YC - FLAME["W"] / 2, YC + FLAME["W"] / 2
     parts += [B(fx1 - 11, fx1 - 8, fy0, fy1, 0, FLAME["post"]), Cz(fx0 + 3.0, fy0 + 3.0, 0, FLAME["post"], 3.6), B(fx0, fx0 + 6, fy0, fy0 + 6, 0, 0.5) if False else Cz(fx0 + 3.0, fy0 + 3.0, 0, 1, 6)]
@@ -131,23 +130,38 @@ def base(bosses):
     cuts += [hull([Cz(x, y, -PLATE - 0.5, -PLATE - 0.49, 3.9, 32), Cz(x, y, -PLATE + 1.8, -PLATE + 1.81, 1.6, 32)]) for x, y in bosses]   # countersink: wide at the back face, seats a flat-head M3
     cuts += [Cz(x, y, -PLATE - 0.01, -PLATE + 1.0, 5.2, 40) for x, y in CORN]                          # rubber-foot pockets (grip on the bark)
     cuts += [Cz(fx0 + 3.0, fy0 + 3.0, FLAME["post"] - 8, FLAME["post"] + 0.1, 1.2, 20)]               # flame module screw pilot
-    return D(b, cuts), dict(esp=(x0, x1), flame=(fx0, fx1), lugs=LUG["xs"])
+    return D(b, cuts), dict(esp_x=(ESP_XC - Wd / 2, ESP_XC + Wd / 2), flame=(fx0, fx1), lugs=LUG["xs"])
+
+
+def stand():
+    """Stand foot: a flat plate under the bottom end with a pocket the casing drops into, so the node stands upright (150 mm tall)."""
+    g, wl, d, T = STAND["gap"], STAND["wall"], STAND["depth"], STAND["T"]
+    cyl = lambda y, z, r, x0, x1: cylinder(radius=r, height=x1 - x0, sections=48, transform=tr([(x0 + x1) / 2, y, z]) @ rot(np.pi / 2, [0, 1, 0]))
+    def section(grow, x0, x1):          # the casing's outline in the y-z plane (rounded roof edge, small radius on the plate side), grown by "grow"
+        ya, yb, za, zb_ = YO0 - g - grow, YO1 + g + grow, -PLATE - g - grow, HS + g + grow; rt, rp = R + g + grow, 1.0 + grow
+        return hull([cyl(ya + rp, za + rp, rp, x0, x1), cyl(yb - rp, za + rp, rp, x0, x1), cyl(ya + rt, zb_ - rt, rt, x0, x1), cyl(yb - rt, zb_ - rt, rt, x0, x1)])
+    zc = (-PLATE + HS) / 2; Wy, Dz = STAND["W"], STAND["Dz"]
+    foot = hull([cyl(YC + sy * (Wy / 2 - 12), zc + sz * (Dz / 2 - 12), 12, XO0 - T, XO0) for sy in (-1, 1) for sz in (-1, 1)])
+    st = U([foot, section(wl, XO0 - 0.01, XO0 + d)])
+    st = D(st, [section(0.0, XO0, XO0 + d + 1), Cz(YC, zc, 0, 0, 1) if False else cyl(YC, zc, 6.0, XO0 - T - 1, XO0 + 0.5)])   # centre hole: lets the pocket drain
+    return st
 
 
 def main():
     sh, bosses = shell(); bs, info = base(bosses)
+    st = stand(); st.export(OUT / "stl" / "field_node_stand.stl")
     sh.export(OUT / "stl" / "field_node_shell.stl"); bs.export(OUT / "stl" / "field_node_base.stl")
     sp = sh.copy(); sp.apply_transform(rot(np.pi, [1, 0, 0])); sp.apply_translation([0, 0, -sp.bounds[0][2]]); sp.export(OUT / "stl" / "field_node_shell_print_orientation.stl")
     rep = {}
-    for n, m in (("shell", sh), ("base", bs)): rep[n] = dict(watertight=bool(m.is_watertight), size_mm=[round(x, 1) for x in m.extents], volume_cm3=round(m.volume / 1000, 1))
+    for n, m in (("shell", sh), ("base", bs), ("stand", st)): rep[n] = dict(watertight=bool(m.is_watertight), size_mm=[round(x, 1) for x in m.extents], volume_cm3=round(m.volume / 1000, 1))
     # fit check: dummy ESP32 and flame module placed as designed must not touch the shell, and shell and base must not overlap
-    x0, x1 = info["esp"]; fx0, fx1 = info["flame"]; xs0 = ESP_X0 + FIT; zb = ESP["pins"]; ya0 = ESP_Y0; ya1 = ESP_Y0 + ESP["W"]; ecy = ESP_CY
-    esp = U([B(xs0, xs0 + ESP["L"], ya0, ya1, zb, zb + ESP["T"]), B(xs0 + 8, xs0 + 40, ya0 + 4, ya1 - 4, zb + ESP["T"], zb + ESP["T"] + 4.5), B(xs0 - 1.5, xs0 + 6, ecy - 4.5, ecy + 4.5, zb + ESP["T"], zb + ESP["T"] + 3.0)])
+    fx0, fx1 = info["flame"]; ex0w, ex1w = info["esp_x"]; zb = ESP["pins"]; yp1 = YIN - (1.5 + FIT); yp0 = yp1 - ESP["L"]
+    esp = U([B(ex0w, ex1w, yp0, yp1, zb, zb + ESP["T"]), B(ex0w + 4, ex1w - 4, yp0 + 6, yp0 + 38, zb + ESP["T"], zb + ESP["T"] + 4.5), B(ESP_XC - 4.5, ESP_XC + 4.5, yp1 - 6, yp1 + 1.6, zb + ESP["T"], zb + ESP["T"] + 3.0)])
     zf = FLAME["post"]; fy0, fy1 = YC - FLAME["W"] / 2, YC + FLAME["W"] / 2
     fl = U([B(fx0, fx1, fy0, fy1, zf, zf + FLAME["T"]), Cz(XH, YC, zf + FLAME["T"], HS + FLAME["poke"], 2.5)])
     ov = lambda a, b: trimesh.boolean.intersection([a, b], engine="manifold").volume
-    rep["fit_check_mm3"] = dict(shell_vs_base=round(ov(sh, bs), 2), esp_vs_shell=round(ov(esp, sh), 2), flame_vs_shell=round(ov(fl, sh), 2), esp_vs_base=round(ov(esp, bs), 2), flame_vs_base=round(ov(fl, bs), 2))
-    tot = trimesh.util.concatenate([sh, bs]); rep["assembled_mm"] = [round(x, 1) for x in tot.extents]; rep["layout"] = info
+    rep["fit_check_mm3"] = dict(shell_vs_base=round(ov(sh, bs), 2), esp_vs_shell=round(ov(esp, sh), 2), flame_vs_shell=round(ov(fl, sh), 2), esp_vs_base=round(ov(esp, bs), 2), stand_vs_shell=round(ov(st, sh), 2), stand_vs_base=round(ov(st, bs), 2), flame_vs_base=round(ov(fl, bs), 2))
+    tot = trimesh.util.concatenate([sh, bs, st]); rep["assembled_mm"] = [round(x, 1) for x in tot.extents]; rep["layout"] = info
     (OUT / "report.json").write_text(json.dumps(rep, indent=1)); print(json.dumps(rep, indent=1))
 
 

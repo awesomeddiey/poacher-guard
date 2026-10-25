@@ -53,7 +53,7 @@ ESP, FL = C.ESP, C.FLAME
 M4 = lambda rows: np.vstack([np.array(rows, float), [0, 0, 0, 1.0]])
 # Parts are modelled in a local frame (width = x, length / forward = y, up = z) and then moved to where the portrait casing expects them.
 ex0 = 0.0; ex1 = ex0 + ESP["W"]; y0 = 1.5 + C.FIT; zb = ESP["pins"]; ecx = (ex0 + ex1) / 2
-TE = M4([[0, 1, 0, 0], [-1, 0, 0, C.ESP_CY + ecx], [0, 0, 1, 0]])                       # local length -> world x (USB end at the bottom wall), local width -> world y
+TE = M4([[-1, 0, 0, C.ESP_XC + ecx], [0, -1, 0, C.YIN], [0, 0, 1, 0]])                  # board turned 180 deg: USB end at the right side wall, length along y, width along x
 fx0 = 0.0; fx1 = fx0 + FL["W"]; fcx = (fx0 + fx1) / 2; sy = FL["L"]; zf = FL["post"]
 TF = M4([[0, 1, 0, C.XH + 3.0 - sy], [-1, 0, 0, C.YC + fcx], [0, 0, 1, 0]])             # module lies flat on its post, head end towards +x
 pw, pd, pr = C.PAD; ZD = 0.0                                                          # webcam: local origin = deck centre, up = away from the top wall
@@ -81,11 +81,11 @@ parts["flame_sensor"] = (U([Cz(C.XH, C.YC, zf + FL["T"], tipz - 2.5, 2.5, 32), i
                             B(C.XH - 2.5, C.XH + 2.5, C.YC - 2.5, C.YC + 2.5, zf + FL["T"], zf + FL["T"] + 4)]), "#111827", None)
 # ---- USB cables: ESP32 (micro-B) and webcam (type A), both hang out of the bottom end ----
 parts["esp_usb_plug"] = (U([B(ecx - 5.5, ecx + 5.5, y0 - 16, y0 - 1.6, zb + 0.9, zb + 5.0)]), "#0b1220", TE)
-ex, ey = 1.5 + C.FIT, C.ESP_CY
-parts["esp_usb_cable"] = (tube([(ex - 16, ey, zb + 3.0), (ex - 30, ey, zb + 3.0), (ex - 55, ey, zb + 0.5), (ex - 80, ey + 5, -C.PLATE + 1.8), (ex - 105, ey + 20, -C.PLATE + 1.8)], 1.8, name="esp_usb_cable"), "#e5e7eb", None)
-hz = C.PAD_CZ - pd / 2 - 2.5; hx = C.CAM_HY
-parts["cam_usb_cable"] = (tube([(C.XO1 - pr + 6, hx, hz), (C.XIN + 0.4, hx, hz), (C.XIN - 10, hx, 7.0), (C.XIN - 30, hx, 9.0), (C.XIN - 70, hx, 12.0), (30.0, hx, 12.6), (8.0, hx - 1, 12.6),
-                             (-2.0, hx - 1, 12.6), (-22, hx - 1, 12.6), (-50, hx - 4, 6), (-78, hx + 10, -C.PLATE + 1.8), (-100, hx + 34, -C.PLATE + 1.8)], 2.2, name="cam_usb_cable"), "#111827", None)
+ex, ey = C.ESP_XC, C.YIN
+parts["esp_usb_cable"] = (tube([(ex, ey + 14.2, zb + 3.0), (ex, ey + 30, zb + 3.0), (ex - 8, ey + 45, zb), (ex - 30, ey + 60, 8.0), (-3.5, ey + 85, 6.0), (-6.2, ey + 115, 6.0)], 1.8, name="esp_usb_cable"), "#e5e7eb", None)
+# webcam lead: leaves the clip base at the rear, lies on the top end wall, runs round the left corner and down the left wall to the PC (no pass-through)
+parts["cam_usb_cable"] = (tube([(C.XO1 + 2.3, C.YC + 12, C.PAD_CZ - pd / 2 + 1.0), (C.XO1 + 2.4, C.YC + 8, 4.0), (C.XO1 + 2.4, C.YC - 25, 9.0), (C.XO1 + 2.6, C.YO0 + C.R, 10.0), (C.XO1 + 1.3, C.YO0 + C.R - 4.8, 10.0), (C.XO1 - 2.2, C.YO0 + C.R - 8.3, 10.0), (C.XO1 - C.R, C.YO0 - 2.6, 10.0), (C.XIN - 40, C.YO0 - 2.8, 10.0),
+                             (60.0, C.YO0 - 4.0, 9.0), (30.0, C.YO0 - 12.0, 8.0), (10.0, C.YO0 - 28.0, 6.0), (-4.5, C.YO0 - 50.0, 6.0), (-6.2, C.YO0 - 90.0, 6.0)], 2.2, name="cam_usb_cable"), "#111827", None)
 # ---- webcam on a clip-style base (generic), standing on the top end wall, lens facing away from the tree ----
 fy0, fy1 = -(pd - 2) / 2, (pd - 2) / 2
 parts["webcam_base"] = (rbox(-25, 25, fy0, fy1, ZD, ZD + 6, 2.5), "#111827", TC)
@@ -116,14 +116,14 @@ for name, (m, color) in parts.items():
     m.export(OUT / f"{name}.stl"); manifest[name] = dict(color=color, triangles=len(m.faces))
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1)); print(len(manifest), "components written")
 # interference report: components against the shell and base (should all be zero except where parts are meant to pass through)
-sh = trimesh.load(Path(__file__).parent / "stl" / "field_node_shell.stl", process=True); bs = trimesh.load(Path(__file__).parent / "stl" / "field_node_base.stl", process=True)
+sh = trimesh.load(Path(__file__).parent / "stl" / "field_node_shell.stl", process=True); bs = trimesh.load(Path(__file__).parent / "stl" / "field_node_base.stl", process=True); st = trimesh.load(Path(__file__).parent / "stl" / "field_node_stand.stl", process=True)
 ov = lambda a, b: round(trimesh.boolean.intersection([a, b], engine="manifold", check_volume=False).volume, 1)
 rep = {}
 for k in ("esp32_pcb", "esp32_module", "esp32_headers", "flame_pcb", "flame_sensor", "esp_usb_plug", "esp32_pins", "webcam_base", "webcam_head", "zip_ties", "screw_1", "screw_4", "foot_1"):
     try: rep[k] = dict(shell_mm3=ov(parts[k][0], sh), base_mm3=ov(parts[k][0], bs))
     except Exception as e: rep[k] = f"not checked ({str(e)[:40]})"
 for k, (pts, r) in CENTER.items():       # cables: the centre line must stay at least one cable radius from every solid
-    both = trimesh.util.concatenate([sh, bs]); d = np.abs(trimesh.proximity.closest_point(both, pts)[1])
-    inside = int(sh.contains(pts).sum() + bs.contains(pts).sum())
+    both = trimesh.util.concatenate([sh, bs, st]); d = np.abs(trimesh.proximity.closest_point(both, pts)[1])
+    inside = int(sh.contains(pts).sum() + bs.contains(pts).sum() + st.contains(pts).sum())
     rep[k] = dict(points_inside_solid=inside, min_clearance_mm=round(float(d.min()), 2), cable_radius_mm=r)
 print(json.dumps(rep, indent=0)); (Path(__file__).parent / "components_report.json").write_text(json.dumps(rep, indent=1))

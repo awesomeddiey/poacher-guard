@@ -3,7 +3,7 @@ import base64, json, subprocess
 from pathlib import Path
 
 HERE = Path(__file__).parent; STL = HERE.parent / "stl"
-parts = {"base": dict(file=STL / "field_node_base.stl", color="#2563eb"), "shell": dict(file=STL / "field_node_shell.stl", color="#eef2f9")}
+parts = {"base": dict(file=STL / "field_node_base.stl", color="#2563eb"), "shell": dict(file=STL / "field_node_shell.stl", color="#eef2f9"), "stand": dict(file=STL / "field_node_stand.stl", color="#93c5fd")}
 man = json.loads((STL / "components" / "manifest.json").read_text())
 for n, m in man.items(): parts[n] = dict(file=STL / "components" / f"{n}.stl", color=m["color"])
 data = {n: dict(color=p["color"], b64=base64.b64encode(p["file"].read_bytes()).decode()) for n, p in parts.items()}

@@ -6,7 +6,7 @@
    100.0,
    40.5
   ],
-  "volume_cm3": 80.2
+  "volume_cm3": 81.1
  },
  "base": {
   "watertight": true,
@@ -17,29 +17,40 @@
   ],
   "volume_cm3": 86.3
  },
+ "stand": {
+  "watertight": true,
+  "size_mm": [
+   16.0,
+   130.0,
+   120.0
+  ],
+  "volume_cm3": 101.0
+ },
  "fit_check_mm3": {
   "shell_vs_base": 0.0,
   "esp_vs_shell": 0.0,
   "flame_vs_shell": 0.0,
   "esp_vs_base": 0.0,
+  "stand_vs_shell": -0.0,
+  "stand_vs_base": 0.0,
   "flame_vs_base": 0.0
  },
  "assembled_mm": [
-  150.0,
+  156.0,
   136.0,
-  45.0
+  120.0
  ],
  "layout": {
-  "esp": [
-   1.5,
-   53.7
+  "esp_x": [
+   5.75,
+   34.25
   ],
   "flame": [
    70.80000000000001,
    102.80000000000001
   ],
   "lugs": [
-   28.0,
+   40.0,
    116.80000000000001
   ]
  }
