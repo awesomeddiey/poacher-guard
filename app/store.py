@@ -70,3 +70,14 @@ class EventStore:
                 "SELECT type, COUNT(*) c FROM events WHERE ts>=? GROUP BY type", (since_ts,)
             ).fetchall()
         return {r["type"]: r["c"] for r in rows}
+
+    def activity_24h(self, now: float) -> list[int]:
+        """Critical alerts per hour for the last 24 h, oldest first."""
+        since = now - 86400
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT ts FROM events WHERE ts>=? AND severity='critical'", (since,)).fetchall()
+        buckets = [0] * 24
+        for r in rows:
+            buckets[min(23, int((r["ts"] - since) // 3600))] += 1
+        return buckets

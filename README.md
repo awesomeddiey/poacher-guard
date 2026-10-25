@@ -39,6 +39,14 @@ No hardware yet? Use the **Test alerts** buttons on the dashboard, or set `visio
 3. **Flame node** – wire the flame sensor (see header of `firmware/flame_node/flame_node.ino`), set Wi-Fi + the laptop's IP, flash. Put its real GPS in `flame.nodes`.
 4. **Site GPS** – set `site.lat/lon` in `config.yaml`. Camera alerts are stamped with this fixed position (a laptop has no GPS).
 
+## Dashboard
+
+Blue/white, single page. Click any card, KPI, sensor, node pin or alert and it zooms into a detail dialog (live camera with what it is seeing, node telemetry, alert snapshot, 24 h activity, map). The map shows every node, with **this node pulsing and highlighted**, plus pins for unacknowledged alerts. Map tiles need internet (CARTO/OpenStreetMap); everything else works offline on the LAN.
+
+Other field nodes (`nodes:` in `config.yaml`) report in by `POST /api/nodes/heartbeat` with JSON like
+`{"node":"NODE-02","battery":81,"rssi":-70,"temp":27.5,"humidity":40,"people":0,"seeing":["clear"]}`.
+A node shows offline after `flame.offline_after_s` seconds of silence. Use **Demo tools → Populate nodes** to fill them with simulated readings.
+
 ## The two models
 
 **Poacher (vision)** – out of the box uses pretrained YOLO11n (`person`). To make it a real poacher model: label images, `python training/train_poacher.py data.yaml`, then point `vision.model` at `runs/poacher/weights/best.pt` (see the docstring).

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import random
+import shutil
 import logging
 import threading
 import time
@@ -29,6 +32,19 @@ class FlamePayload(BaseModel):
     node: str
     fire: bool
     raw: int | None = None
+    key: str | None = None
+
+
+class HeartbeatPayload(BaseModel):
+    node: str
+    battery: float | None = None      # percent
+    rssi: int | None = None           # uplink signal, dBm
+    temp: float | None = None         # deg C
+    humidity: float | None = None     # %
+    people: int | None = None
+    seeing: list[str] | None = None   # e.g. ["person 0.91", "elephant 0.88"]
+    lat: float | None = None
+    lon: float | None = None
     key: str | None = None
 
 
@@ -70,6 +86,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
 
     engine = AlertEngine(cfg, store, registry, publish=publish, save_snapshot=save_snapshot)
     workers: dict[str, Any] = {}
+    started = time.time()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -99,7 +116,15 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             if not x:
                 return {"running": False, "error": "disabled" if start_workers else "not started"}
             return dict(x.status)
-        return {"site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"),
+        try:
+            load1 = round(os.getloadavg()[0], 2)
+        except (AttributeError, OSError):
+            load1 = None
+        disk = shutil.disk_usage(ROOT)
+        system = {"uptime_s": int(time.time() - started), "load1": load1,
+                  "disk_free_gb": round(disk.free / 1e9, 1), "cpus": os.cpu_count()}
+        return {"system": system, "activity_24h": store.activity_24h(time.time()),
+                "site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"),
                 "rangers": registry.status(), "nodes": engine.node_status(),
                 "simulation": bool(cfg["server"].get("allow_simulation", False)),
                 "counts_24h": store.counts_since(time.time() - 86400)}
@@ -126,6 +151,16 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         ev = engine.on_flame(p.node, p.fire, p.raw)
         return {"ok": True, "alert": bool(ev)}
 
+    @app.post("/api/nodes/heartbeat")
+    def heartbeat(p: HeartbeatPayload):
+        want = cfg["flame"].get("api_key")
+        if want and p.key != want:
+            raise HTTPException(401, "bad key")
+        engine.on_heartbeat(p.node, {"battery": p.battery, "rssi": p.rssi, "temp": p.temp,
+                                     "humidity": p.humidity, "people": p.people, "seeing": p.seeing},
+                            p.lat, p.lon)
+        return {"ok": True}
+
     @app.post("/api/simulate/{kind}")
     def simulate(kind: str):
         if not cfg["server"].get("allow_simulation", False):
@@ -139,12 +174,21 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             ev = engine.on_person(None, fake)
         elif kind == "gunshot":
             ev = engine.on_gunshot(0.9, "Gunshot, gunfire")
+        elif kind == "nodes":
+            for n in engine.node_status():
+                if n["kind"] == "camera":
+                    engine.on_heartbeat(n["id"], {"battery": random.randint(55, 98), "rssi": random.randint(-95, -62),
+                                                  "temp": round(random.uniform(18, 34), 1), "humidity": random.randint(25, 70),
+                                                  "people": 0, "seeing": ["clear - no humans"]})
+                else:
+                    engine.on_flame(n["id"], False, random.randint(2500, 3900))
+            ev = None
         elif kind == "fire":
             node = (cfg["flame"]["nodes"] or [{"id": "FLAME-01"}])[0]["id"]
             ev = engine.on_flame(node, True, 100)
         else:
             raise HTTPException(404, "unknown kind")
-        return {"ok": True, "alert": bool(ev), "note": None if ev else "suppressed by cooldown"}
+        return {"ok": True, "alert": bool(ev), "note": None if ev or kind == "nodes" else "suppressed by cooldown"}
 
     @app.get("/video")
     def video():

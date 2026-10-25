@@ -27,7 +27,8 @@ class VisionWorker(threading.Thread):
         self._stop = threading.Event()
         self._jpeg: bytes | None = None
         self._lock = threading.Lock()
-        self.status = {"running": False, "fps": 0.0, "error": None, "people": 0}
+        self.status = {"running": False, "fps": 0.0, "error": None, "people": 0,
+                       "detections": [], "weapon": False, "model": self.cfg.get("model", "")}
         self._hist: collections.deque[bool] = collections.deque(maxlen=self.cfg.get("window_frames", 6))
         self.person_classes = {c.lower() for c in self.cfg.get("person_classes", ["person"])}
         self.weapon_classes = {c.lower() for c in self.cfg.get("weapon_classes", [])}
@@ -80,7 +81,9 @@ class VisionWorker(threading.Thread):
             if n % every == 0:
                 boxes, weapon = self._detect(model, frame, conf)
                 self._hist.append(bool(boxes))
-                self.status["people"] = len(boxes)
+                self.status["people"] = sum(1 for b in boxes if b["label"] in self.person_classes)
+                self.status["detections"] = [{"label": b["label"], "conf": b["conf"]} for b in boxes][:12]
+                self.status["weapon"] = weapon
                 if sum(self._hist) >= need and boxes:
                     try:
                         self.engine.on_person(self._annotate(frame, boxes),

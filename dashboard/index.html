@@ -8,64 +8,84 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>🛡️ Poacher Guard <span id="site"></span></h1>
-  <div id="chips">
-    <span class="chip" id="chip-cam">Camera</span>
-    <span class="chip" id="chip-mic">Mic</span>
-    <span class="chip" id="chip-ble">BLE</span>
-    <span class="chip" id="chip-ws">Link</span>
-    <button id="sound">🔇 Enable alarm sound</button>
-  </div>
-</header>
+<aside id="rail">
+  <div class="logo" title="Poacher Guard"></div>
+  <nav>
+    <a href="#top" class="on" data-i="shield" title="Overview"></a>
+    <a href="#live" data-i="camera" title="Live camera"></a>
+    <a href="#mapcard" data-i="map" title="Map"></a>
+    <a href="#sensors" data-i="pulse" title="Sensors"></a>
+    <a href="#feedcard" data-i="bell" title="Alert log"></a>
+  </nav>
+  <button id="sound" class="rail-btn" title="Alarm sound" data-i="mute"></button>
+</aside>
 
-<div id="banner" hidden>
-  <strong id="banner-title"></strong>
-  <span id="banner-time"></span>
-  <button id="banner-ack">Acknowledge</button>
-</div>
-
-<main>
-  <section class="card" id="live">
-    <h2>Live camera <small id="cam-meta"></small></h2>
-    <div class="video"><img id="video" alt="live camera"><div id="novideo">Camera offline</div></div>
-    <div class="meters">
-      <label>Mic level <progress id="lvl" max="1" value="0"></progress></label>
-      <label>Gunshot score <progress id="gs" max="1" value="0"></progress> <b id="gs-v">0.00</b></label>
+<div id="page">
+  <header id="top">
+    <div>
+      <h1>Poacher Guard</h1>
+      <p id="site">Connecting…</p>
     </div>
+    <div id="chips">
+      <span class="chip" id="chip-ws"></span>
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <section id="hero"></section>
+  <section id="kpis"></section>
+
+  <section class="grid">
+    <article class="card clickable" id="live">
+      <div class="card-h"><h2>Live camera</h2><span class="sub" id="live-sub"></span><i class="ex" data-i="expand"></i></div>
+      <div class="video">
+        <img id="video" alt="Live camera">
+        <div id="novideo"><i data-i="camera"></i><span>Camera offline</span></div>
+        <span class="pill live" id="vpill">LIVE</span>
+        <div id="seeing"></div>
+      </div>
+      <div id="vstats"></div>
+    </article>
+
+    <article class="card" id="mapcard">
+      <div class="card-h"><h2>Node map</h2><span class="sub">Your node is highlighted</span>
+        <button class="ghost" id="recenter">Fit all</button><button class="ghost icon" id="map-ex" data-i="expand" title="Enlarge"></button></div>
+      <div id="map"></div>
+      <div class="legend">
+        <span><b class="k me"></b>This node</span><span><b class="k on"></b>Online</span>
+        <span><b class="k off"></b>Offline</span><span><b class="k bad"></b>Alert</span>
+      </div>
+    </article>
   </section>
 
-  <section class="card" id="mapcard">
-    <h2>Map</h2>
-    <div id="map"></div>
-  </section>
-
-  <section class="card" id="sidebar">
-    <h2>Rangers <small>(BLE tags)</small></h2>
-    <ul id="rangers"></ul>
-    <h2>Fire sensors</h2>
-    <ul id="nodes"></ul>
-    <h2>Last 24 h</h2>
-    <div id="counts"></div>
-    <div id="sim" hidden>
-      <h2>Test alerts</h2>
-      <button data-sim="poacher">Poacher</button>
-      <button data-sim="ranger">Ranger</button>
-      <button data-sim="gunshot">Gunshot</button>
-      <button data-sim="fire">Fire</button>
-    </div>
+  <section class="grid three">
+    <article class="card" id="sensors"><div class="card-h"><h2>Active sensors</h2><span class="sub" id="sensors-sub"></span></div><ul id="sensor-list"></ul></article>
+    <article class="card" id="telem"><div class="card-h"><h2>Telematics</h2></div><div id="telemetry"></div></article>
+    <article class="card clickable" id="activity-card"><div class="card-h"><h2>Alerts · last 24 h</h2><i class="ex" data-i="expand"></i></div><div id="activity"></div>
+      <div id="rangers"></div></article>
   </section>
 
   <section class="card" id="feedcard">
-    <h2>Alert log</h2>
-    <div id="filters">
-      <label><input type="checkbox" id="hide-ranger"> hide ranger sightings</label>
-    </div>
+    <div class="card-h"><h2>Alert log</h2><label class="toggle"><input type="checkbox" id="hide-ranger"><span>Hide ranger sightings</span></label></div>
     <ul id="feed"></ul>
   </section>
-</main>
 
-<div id="lightbox" hidden><img alt="snapshot"></div>
+  <section class="card" id="sim" hidden>
+    <div class="card-h"><h2>Demo tools</h2><span class="sub">Simulated data — turn off in config.yaml for field use</span></div>
+    <div class="btns">
+      <button data-sim="nodes">Populate nodes</button><button data-sim="poacher">Poacher</button>
+      <button data-sim="ranger">Ranger</button><button data-sim="gunshot">Gunshot</button><button data-sim="fire">Fire</button>
+    </div>
+  </section>
+</div>
+
+<div id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div class="sheet-h"><h3 id="m-title"></h3><button class="x" id="m-close" aria-label="Close" data-i="x"></button></div>
+    <div id="m-body"></div>
+  </div>
+</div>
+
 <script src="vendor/leaflet.js"></script>
 <script src="app.js"></script>
 </body>

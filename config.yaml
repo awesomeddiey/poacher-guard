@@ -76,8 +76,21 @@ flame:
   nodes:
     - id: FLAME-01
       label: "Flame node 1 (river camp)"
-      lat: -17.8301
-      lon: 31.0540
+      lat: -17.8322
+      lon: 31.0566
+
+# Other field nodes (camera/sensor units out in the bush). They report in by
+# POSTing to /api/nodes/heartbeat (battery, signal, what they currently see).
+# This laptop is the base node and is always shown highlighted on the map.
+nodes:
+  - id: NODE-02
+    label: "Node 2 - north ridge"
+    lat: -17.8246
+    lon: 31.0577
+  - id: NODE-03
+    label: "Node 3 - waterhole"
+    lat: -17.8338
+    lon: 31.0481
 
 alerts:
   # Minimum seconds between two alerts of the same type, so one intruder

@@ -50,3 +50,16 @@ def test_ranger_simulation(tmp_path):
 def test_dashboard_served(tmp_path):
     with client(tmp_path) as c:
         assert c.get("/api/status").status_code == 200
+
+
+def test_node_heartbeat_shows_telemetry_and_activity(tmp_path):
+    with client(tmp_path) as c:
+        r = c.post("/api/nodes/heartbeat", json={"node": "NODE-02", "battery": 81, "rssi": -70,
+                                                 "seeing": ["person 0.9"]})
+        assert r.json()["ok"]
+        st = c.get("/api/status").json()
+        n = next(x for x in st["nodes"] if x["id"] == "NODE-02")
+        assert n["online"] and n["telemetry"]["battery"] == 81 and n["kind"] == "camera"
+        c.post("/api/simulate/poacher")
+        assert sum(c.get("/api/status").json()["activity_24h"]) == 1
+        assert c.get("/api/status").json()["system"]["uptime_s"] >= 0

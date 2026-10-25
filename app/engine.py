@@ -42,8 +42,10 @@ class AlertEngine:
         self._last_poacher_ts = -1e9
         self._last_gunshot_ts = -1e9
         self._lock = threading.Lock()
-        self.flame_nodes = {n["id"]: {**n, "last_seen": None, "fire": False, "raw": None}
+        self.flame_nodes = {n["id"]: {**n, "kind": "flame", "last_seen": None, "fire": False, "raw": None}
                             for n in cfg["flame"].get("nodes", [])}
+        self.field_nodes = {n["id"]: {**n, "kind": "camera", "last_seen": None, "fire": False,
+                                      "telemetry": {}} for n in cfg.get("nodes", [])}
         self.offline_after = cfg["flame"].get("offline_after_s", 30)
 
     # ---- helpers -------------------------------------------------------
@@ -107,7 +109,7 @@ class AlertEngine:
 
     # ---- flame sensor --------------------------------------------------
     def on_flame(self, node_id: str, fire: bool, raw: int | None = None) -> dict[str, Any] | None:
-        node = self.flame_nodes.setdefault(node_id, {"id": node_id, "label": node_id,
+        node = self.flame_nodes.setdefault(node_id, {"id": node_id, "label": node_id, "kind": "flame",
                                                      "lat": self.site["lat"], "lon": self.site["lon"],
                                                      "last_seen": None, "fire": False, "raw": None})
         node.update(last_seen=self.clock(), fire=bool(fire), raw=raw)
@@ -118,10 +120,26 @@ class AlertEngine:
                           lat=node.get("lat"), lon=node.get("lon"),
                           detail={"node": node_id, "raw": raw})
 
+    # ---- remote field nodes ---------------------------------------------
+    def on_heartbeat(self, node_id: str, telemetry: dict[str, Any],
+                     lat: float | None = None, lon: float | None = None) -> None:
+        node = self.field_nodes.setdefault(node_id, {"id": node_id, "label": node_id, "kind": "camera",
+                                                     "lat": self.site["lat"], "lon": self.site["lon"],
+                                                     "last_seen": None, "fire": False, "telemetry": {}})
+        if lat is not None and lon is not None:
+            node["lat"], node["lon"] = lat, lon
+        node["last_seen"] = self.clock()
+        node["telemetry"] = {k: v for k, v in telemetry.items() if v is not None}
+        self.publish({"kind": "nodes", "nodes": self.node_status()})
+
     def node_status(self) -> list[dict[str, Any]]:
         now = self.clock()
-        return [{"id": n["id"], "label": n.get("label", n["id"]), "lat": n.get("lat"), "lon": n.get("lon"),
-                 "online": bool(n["last_seen"] and now - n["last_seen"] <= self.offline_after),
-                 "fire": bool(n["fire"] and n["last_seen"] and now - n["last_seen"] <= self.offline_after),
-                 "age_s": round(now - n["last_seen"], 1) if n["last_seen"] else None}
-                for n in self.flame_nodes.values()]
+        out = []
+        for n in list(self.flame_nodes.values()) + list(self.field_nodes.values()):
+            online = bool(n["last_seen"] and now - n["last_seen"] <= self.offline_after)
+            out.append({"id": n["id"], "label": n.get("label", n["id"]), "kind": n.get("kind", "flame"),
+                        "lat": n.get("lat"), "lon": n.get("lon"), "online": online,
+                        "fire": bool(n["fire"] and online),
+                        "raw": n.get("raw"), "telemetry": n.get("telemetry", {}) if online else {},
+                        "age_s": round(now - n["last_seen"], 1) if n["last_seen"] else None})
+        return out

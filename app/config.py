@@ -34,4 +34,5 @@ def load_config(path: str | os.PathLike | None = None) -> dict[str, Any]:
     cfg["alerts"].setdefault("correlate_window_s", 120)
     cfg["ble"].setdefault("tags", [])
     cfg["flame"].setdefault("nodes", [])
+    cfg.setdefault("nodes", [])
     return cfg
