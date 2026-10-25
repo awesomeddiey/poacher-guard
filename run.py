@@ -1,4 +1,6 @@
 """Start Poacher Guard:  python run.py   (then open http://localhost:8000)"""
+import os
+os.environ.setdefault("OPENCV_LOG_LEVEL", "SILENT")   # hide OpenCV probe warnings
 import logging
 
 import uvicorn

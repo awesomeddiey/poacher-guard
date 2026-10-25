@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Poacher Guard self-test</title>
+<body style="font:15px system-ui;padding:24px;max-width:760px"><h1>Self-test</h1><p>Loads both models in this browser and runs them on a test image and test sound.</p>
+<pre id="log">starting…</pre>
+<script type="module">
+import { PersonDetector, GunshotDetector, WIN, SR } from "/js/detectors.js";
+const log = (s) => (document.getElementById("log").textContent += "\n" + s), q = new URLSearchParams(location.search), R = { ok: false };
+window.__result = R;
+try {
+  const t0 = performance.now(); const pd = await new PersonDetector().load(); R.person_load_ms = Math.round(performance.now() - t0); log(`person model loaded in ${R.person_load_ms} ms`);
+  const img = new Image(); img.src = q.get("img") || "/selftest/people.jpg"; await img.decode();
+  let t = performance.now(); const boxes = await pd.detect(img, 0.45); R.person_first_ms = Math.round(performance.now() - t);
+  t = performance.now(); for (let i = 0; i < 5; i++) await pd.detect(img, 0.45); R.person_ms = Math.round((performance.now() - t) / 5); R.boxes = boxes.map((b) => ({ ...b, conf: +b.conf.toFixed(3) }));
+  log(`person: ${boxes.length} detections, ${R.person_ms} ms per image`);
+  const t1 = performance.now(); const gd = await new GunshotDetector().load(); R.gun_load_ms = Math.round(performance.now() - t1); log(`gunshot model loaded in ${R.gun_load_ms} ms`);
+  R.audio = {};
+  for (const [name, url] of [["gun", q.get("gun")], ["can", q.get("can")]]) {
+    if (!url) continue; const ab = await (await fetch(url)).arrayBuffer(); const ctx = new OfflineAudioContext(1, 1, SR); const buf = await ctx.decodeAudioData(ab);
+    const x = buf.getChannelData(0), best = { zero: 0, head: 0 }; t = performance.now();
+    for (let i = 0; i + WIN <= Math.max(x.length, WIN); i += 8000) { const w = new Float32Array(WIN); w.set(x.subarray(i, i + WIN)); const s = await gd.score(w); best.zero = Math.max(best.zero, s.zero); best.head = Math.max(best.head, s.head ?? 0); }
+    R.audio[name] = { zero: +best.zero.toFixed(3), head: +best.head.toFixed(3), samples: x.length, sr: buf.sampleRate, ms: Math.round(performance.now() - t) }; log(`${name}: zero-shot ${best.zero.toFixed(3)}, classifier ${best.head.toFixed(3)}`);
+  }
+  R.ok = true; log("ALL OK");
+} catch (e) { R.error = String(e && e.stack || e); log("ERROR " + R.error); }
+R.done = true;
+</script>

@@ -21,14 +21,22 @@ Laptop-based anti-poaching detection: **webcam person detector + microphone guns
 
 ## Run it
 
+**Windows (recommended): double-click `run-poacher-guard.bat`.** The first time it installs everything (internet needed, 5 to 10 minutes). After that it works offline: it checks the camera and microphone, starts both detectors and opens the dashboard at http://localhost:8000 by itself.
+* `scan-for-beacon.bat` lists nearby Bluetooth devices with their addresses, so you can copy your ranger beacon's address into `config.yaml` (`ble.tags[].address`).
+* The USB webcam is found automatically (`vision.source: auto` picks the last working camera). To force one, set `source: 0` or `1` in `config.yaml`, or run `set PG_CAMERA=1` before the launcher.
+* Run `python check_setup.py` any time to see what is working.
+
+Any OS from a terminal:
+
 ```bash
 cd poacher-guard
-python -m venv .venv && source .venv/bin/activate     # Windows: run-poacher-guard.bat does all of this
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python check_setup.py
 python run.py                                          # open http://localhost:8000
 ```
 
-Phones/tablets on the same Wi-Fi can open `http://<laptop-ip>:8000`. Click **Enable alarm sound** once in the browser (browsers block audio until you do).
+Phones and tablets on the same Wi-Fi can open `http://<laptop-ip>:8000`. Click **Enable alarm sound** once in the browser (browsers block audio until you do).
 
 No hardware yet? Use the **Test alerts** buttons on the dashboard, or set `vision.source` in `config.yaml` to a video file path.
 

@@ -20,9 +20,11 @@ storage:
 
 vision:
   enabled: true
-  # 0 = built-in webcam, 1 = first USB webcam. Can also be a video file
+  # auto = use the last working camera (the USB webcam on the node, when the PC also has a built-in one).
+  # Or set 0 = built-in webcam, 1 = first USB webcam. Can also be a video file
   # path or an RTSP URL (IP camera) - handy for demos with recorded footage.
-  source: 0
+  # Temporary override without editing this file: set PG_CAMERA=1 before starting.
+  source: auto
   width: 640
   height: 480
   # Pretrained COCO model (detects "person"). After training your own

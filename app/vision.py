@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import collections
 import logging
+import os
+import platform
 import threading
 import time
 from typing import Any
@@ -40,9 +42,26 @@ class VisionWorker(threading.Thread):
         with self._lock:
             return self._jpeg
 
+    def _backend(self):
+        return cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY   # DirectShow opens USB webcams faster on Windows
+
+    def _pick_source(self):
+        """PG_CAMERA (environment) overrides config. 'auto' = the last working camera index, which is the USB webcam when the
+        laptop also has a built-in camera (built-in is index 0)."""
+        src = os.environ.get("PG_CAMERA") or self.cfg.get("source", 0)
+        if isinstance(src, str) and src.strip().isdigit(): src = int(src)
+        if src != "auto": return src
+        found = []
+        for i in range(5):
+            c = cv2.VideoCapture(i, self._backend())
+            if c.isOpened() and c.read()[0]: found.append(i)
+            c.release()
+        log.info("cameras found: %s", found)
+        return found[-1] if found else 0
+
     def _open(self):
-        src = self.cfg.get("source", 0)
-        cap = cv2.VideoCapture(src)
+        src = self.cfg["source"] = self._pick_source()
+        cap = cv2.VideoCapture(src, self._backend()) if isinstance(src, int) else cv2.VideoCapture(src)
         if isinstance(src, int):
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.cfg.get("width", 640))
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cfg.get("height", 480))
