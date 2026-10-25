@@ -1,48 +1,46 @@
 {
- "flame_node_base": {
+ "shell": {
   "watertight": true,
   "size_mm": [
-   91.3,
-   72.3,
-   24.5
+   69.2,
+   72.6,
+   26.6
   ],
-  "volume_cm3": 27.2,
-  "inner_mm": [
-   58.5,
-   58.5,
-   22.1
+  "volume_cm3": 27.2
+ },
+ "base": {
+  "watertight": true,
+  "size_mm": [
+   69.2,
+   63.2,
+   14.5
+  ],
+  "volume_cm3": 21.4
+ },
+ "fit_check_mm3": {
+  "shell_vs_base": 0.0,
+  "esp_vs_shell": 0.0,
+  "flame_vs_shell": 0.0,
+  "esp_vs_base": 0.0,
+  "flame_vs_base": 0.0
+ },
+ "assembled_mm": [
+  69.2,
+  72.6,
+  31.1
+ ],
+ "layout": {
+  "esp": [
+   5.0,
+   33.5
+  ],
+  "flame": [
+   36.5,
+   50.5
+  ],
+  "tripod": [
+   57.0,
+   29.0
   ]
- },
- "flame_node_lid": {
-  "watertight": true,
-  "size_mm": [
-   67.5,
-   67.5,
-   12.5
-  ],
-  "volume_cm3": 14.0
- },
- "ranger_tag_base": {
-  "watertight": true,
-  "size_mm": [
-   86.8,
-   29.2,
-   16.4
-  ],
-  "volume_cm3": 12.7,
-  "inner_mm": [
-   62.0,
-   24.0,
-   14.0
-  ]
- },
- "ranger_tag_lid": {
-  "watertight": true,
-  "size_mm": [
-   71.0,
-   33.0,
-   8.4
-  ],
-  "volume_cm3": 7.4
  }
 }

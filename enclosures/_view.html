@@ -1,0 +1,15 @@
+<!doctype html><body style="margin:0;background:#fff"><canvas id=c width=1100 height=800></canvas>
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+<script type="module">
+import * as T from "three"; import { STLLoader } from "three/addons/loaders/STLLoader.js";
+const r = new T.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true, preserveDrawingBuffer: true }); r.setClearColor(0xffffff);
+window.show = async (files, colors, az, el, explode) => {
+  const s = new T.Scene(); const L = new STLLoader(); const g = new T.Group(); let k = 0;
+  for (const [i, f] of files.entries()) { const geo = await L.loadAsync("/stl/" + f); geo.computeVertexNormals();
+    const m = new T.Mesh(geo, new T.MeshStandardMaterial({ color: colors[i], roughness: .55, metalness: .05 })); m.position.z = i * explode; g.add(m); }
+  s.add(g); const box = new T.Box3().setFromObject(g); const c = box.getCenter(new T.Vector3()); const sz = box.getSize(new T.Vector3()).length();
+  s.add(new T.HemisphereLight(0xffffff, 0x8899bb, 1.1)); const d = new T.DirectionalLight(0xffffff, 2.2); d.position.set(60, -80, 120); s.add(d);
+  const cam = new T.PerspectiveCamera(30, 1100 / 800, 1, 2000); const a = az * Math.PI / 180, e = el * Math.PI / 180;
+  cam.up.set(0, 0, 1); cam.position.set(c.x + sz * 1.6 * Math.cos(e) * Math.sin(a), c.y - sz * 1.6 * Math.cos(e) * Math.cos(a), c.z + sz * 1.6 * Math.sin(e)); cam.lookAt(c);
+  r.render(s, cam); return true; };
+</script></body>
