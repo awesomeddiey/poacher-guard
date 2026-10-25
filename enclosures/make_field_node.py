@@ -2,7 +2,7 @@
 
 One casing, two printed parts:
   field_node_shell.stl   white "pebble" shell: sensor slit with sun visor (front), camera deck with zip-tie slots (top),
-                         vent slots (left), engraved wordmark (right), one cable port (rear). Print upside down (roof on the bed).
+                         engraved wordmark (left), one USB port (right). Print upside down (roof on the bed).
   field_node_base.stl    blue base plate: 4 hidden screws from below, board supports, 1/4-20 tripod thread, rubber-foot pockets.
 Inside: ESP32 DevKit V1 (30 pin) and a 4-pin flame sensor module. The USB webcam sits on the deck; its cable and the
 ESP32 cable leave through the rear port. Edit PARAMETERS to match your boards.
@@ -76,10 +76,8 @@ def shell():
     sh = D(outer, [inner])
     # round hole in the roof for the IR flame sensor head, which pokes out; soft bevel on the outside
     sh = D(sh, [Cz(XH, YC, HS - WALL - 1, HS + 1, SENSOR_HOLE_R), hull([Cz(XH, YC, HS - 1.6, HS - 1.59, SENSOR_HOLE_R), Cz(XH, YC, HS - 0.01, HS + 0.5, SENSOR_HOLE_R + 1.8)])])
-    # side port on the right wall, lined up with the ESP32 micro-USB socket (the webcam plugs straight into the PC, so it needs no port)
+    # side port on the right wall, lined up with the ESP32 micro-USB socket (the webcam plugs straight into the PC, so it needs no port); no vents
     sh = D(sh, [stadium_y(ESP_XC, 12.5, 22.0, 9.0, YIN - 1.0, YO1 + 1)])
-    # vents on the right side wall: 8 slots
-    sh = D(sh, [B(60.0 + i * 6.0 - 1.0, 60.0 + i * 6.0 + 1.0, YIN - 1.0, YO1 + 1, 6.0, 30.0) for i in range(8)])
     # camera deck on the TOP END wall: shallow recess and four zip-tie slots
     pw, pd, pr = PAD
     sh = D(sh, [B(XO1 - pr, XO1 + 1, YC - pw / 2, YC + pw / 2, PAD_CZ - pd / 2, PAD_CZ + pd / 2)])
@@ -138,6 +136,7 @@ def base(bosses):
 
 def main():
     sh, bosses = shell(); bs, info = base(bosses)
+    trimesh.util.concatenate([sh, bs]).export(OUT / "stl" / "field_node_assembled.stl")      # shell seated on the base, as it sits when closed
     sh.export(OUT / "stl" / "field_node_shell.stl"); bs.export(OUT / "stl" / "field_node_base.stl")
     sp = sh.copy(); sp.apply_transform(rot(np.pi, [1, 0, 0])); sp.apply_translation([0, 0, -sp.bounds[0][2]]); sp.export(OUT / "stl" / "field_node_shell_print_orientation.stl")
     rep = {}

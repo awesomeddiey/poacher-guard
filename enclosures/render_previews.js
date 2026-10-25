@@ -24,7 +24,7 @@ fs.writeFileSync(path.join(ROOT, "_view.html"), page);
   p.on("pageerror", e => console.log("pageerror", e.message)); await p.goto("http://localhost:8765/_view.html"); await p.waitForTimeout(800);
   const jobs = []; const W = "#e8eef7", BL = "#2563eb"; const sh = "field_node_shell.stl", ba = "field_node_base.stl";
   jobs.push(["hero", [ba, sh], [BL, W], 215, 22, 0], ["exploded", [ba, sh], [BL, W], 215, 24, 26], ["front", [ba, sh], [BL, W], 180, 10, 0], ["right", [ba, sh], [BL, W], 90, 8, 0],
-            ["left", [ba, sh], [BL, W], 270, 8, 0], ["rear", [ba, sh], [BL, W], 0, 10, 0], ["top", [ba, sh], [BL, W], 160, 75, 0], ["base", [ba], [BL], 30, 50, 0], ["base_bottom", [ba], [BL], 30, -50, 0], ["shell_inside", [sh], [W], 25, -55, 0]);
+            ["left", [ba, sh], [BL, W], 270, 8, 0], ["rear", [ba, sh], [BL, W], 0, 10, 0], ["top", [ba, sh], [BL, W], 160, 75, 0], ["full_assembly", ["field_node_full_assembly.stl"], ["#d6deeb"], 210, 25, 0], ["base", [ba], [BL], 30, 50, 0], ["base_bottom", [ba], [BL], 30, -50, 0], ["shell_inside", [sh], [W], 25, -55, 0]);
   for (const [name, files, colors, az, el, ex] of jobs) {
     await p.evaluate(async (a) => await window.show(...a), [files, colors, az, el, ex]); await p.locator("#c").screenshot({ path: path.join(ROOT, "previews", name + ".png") }); console.log("rendered", name);
   }

@@ -115,6 +115,8 @@ for k, (m, c, T) in list(parts.items()):
     parts[k] = (m, c)
 
 manifest = {}
+_sh0 = trimesh.load(Path(__file__).parent / "stl" / "field_node_shell.stl"); _bs0 = trimesh.load(Path(__file__).parent / "stl" / "field_node_base.stl")
+trimesh.util.concatenate([_sh0, _bs0] + [m for m, _ in parts.values()]).export(Path(__file__).parent / "stl" / "field_node_full_assembly.stl")   # casing + boards + webcam + cables + screws + feet, in place
 for name, (m, color) in parts.items():
     m.export(OUT / f"{name}.stl"); manifest[name] = dict(color=color, triangles=len(m.faces))
 (OUT / "manifest.json").write_text(json.dumps(manifest, indent=1)); print(len(manifest), "components written")

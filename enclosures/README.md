@@ -11,6 +11,8 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 | File (`stl/`) | What | Colour | Size (mm) |
 |---|---|---|---|
 | `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
+| `field_node_assembled.stl` | the shell seated on the base (the closed casing, two bodies) | white + blue | 150 x 136 x 45 |
+| `field_node_full_assembly.stl` | everything in place: casing, ESP32, flame module, webcam, cables, screws, feet, ballast | n/a | see file |
 | `field_node_base.stl` | back plate with strap lugs, board supports and flame-module post | blue | 150 x 136 x 29.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
@@ -19,9 +21,9 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 ## Features
 * **Front (away from the tree):** a round hole through which the IR flame sensor head pokes out 6 mm.
 * **Top end:** a camera deck (50 x 26 mm recess) with four zip-tie slots; the webcam stands on it with its lens facing away from the tree.
-* **Right side wall:** one 22 x 9 mm port lined up with the ESP32 micro-USB socket (the board lies with its USB end facing it) and eight vent slots. There is no port for the webcam: it plugs straight into the PC and its lead runs down the outside.
+* **Right side wall:** one 22 x 9 mm port lined up with the ESP32 micro-USB socket (the board lies with its USB end facing it). There is no port for the webcam: it plugs straight into the PC and its lead runs down the outside.
 * **Back plate (against the tree):** four strap lugs (two each side) with 30 x 5 mm windows for a 25 mm strap or ratchet strap, four rubber-foot pockets to grip the bark, four hidden M3 screws from the tree side.
-* **Left side:** seven vent slots. **Right side:** engraved POACHER GUARD wordmark.
+* **Left side:** engraved POACHER GUARD wordmark. No vents.
 * The report checks that the parts do not overlap and that the boards clear every wall (0 mm3 overlap).
 
 ## What to buy
@@ -53,7 +55,7 @@ Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (13
 * Print the base alone first and drop the real boards in.
 
 ## Honest notes
-* The casing is splash resistant at best (vents, cable port and camera slots are open). Keep it dry, or add a rain hood outdoors.
+* The casing is splash resistant at best (the USB port and camera slots are open). Keep it dry, or add a rain hood outdoors.
 * Keep the node out of direct sunlight, because the sun gives false readings on infrared flame sensors.
 
 ## Assembly animation
