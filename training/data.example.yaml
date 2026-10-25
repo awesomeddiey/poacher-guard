@@ -1,7 +1,7 @@
-path: data/poacher_dataset      # contains images/{train,val} and labels/{train,val}
+path: data/poacher_dataset      # produced by training/split_dataset.py
 train: images/train
 val: images/val
+test: images/test
 names:
-  0: poacher
+  0: person
   1: weapon
-  2: snare

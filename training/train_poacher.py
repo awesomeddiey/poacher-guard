@@ -1,20 +1,21 @@
-"""Fine-tune YOLO on your own poacher/ranger/weapon images.
+"""Fine-tune YOLO11n on the annotated person / weapon dataset.
 
-1. Label images (Roboflow / CVAT / labelImg) in YOLO format with classes such as:
-       0 poacher   1 weapon   2 snare
-2. Put them in the Ultralytics layout and write data.yaml (see training/data.example.yaml).
-3. python training/train_poacher.py data.yaml
-4. In config.yaml set vision.model: runs/poacher/weights/best.pt
-   (person_classes / weapon_classes in config.yaml must match your class names)
+    python training/split_dataset.py
+    python training/train_poacher.py data/poacher_dataset/data.yaml
 
-Tip: train on night/IR frames, camouflage, distance shots and partial occlusion;
-that is what the field looks like. The BLE tag, not the model, decides who is a ranger.
+Writes runs/poacher/ with results.png (training curves), confusion_matrix.png, PR_curve.png and
+weights/best.pt. Point config.yaml -> vision.model at runs/poacher/weights/best.pt afterwards.
+Classes describe what is VISIBLE (person, weapon). Whether a person is a poacher or a ranger
+is decided by the alert engine from the BLE tag, never from appearance.
 """
+import json
 import sys
 
 from ultralytics import YOLO
 
-data = sys.argv[1] if len(sys.argv) > 1 else "data.yaml"
-model = YOLO("yolo11n.pt")
-model.train(data=data, epochs=80, imgsz=640, batch=16, project="runs", name="poacher", exist_ok=True)
+data = sys.argv[1] if len(sys.argv) > 1 else "data/poacher_dataset/data.yaml"
+cfg = dict(data=data, epochs=80, imgsz=640, batch=16, patience=20, seed=0, project="runs", name="poacher", exist_ok=True)
+YOLO("models/yolo11n.pt").train(**cfg)
+with open("results/train_config.json", "w") as f:
+    json.dump(cfg, f, indent=2)
 print("Best weights: runs/poacher/weights/best.pt")
