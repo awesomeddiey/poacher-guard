@@ -6,7 +6,7 @@
    72.6,
    26.6
   ],
-  "volume_cm3": 27.2
+  "volume_cm3": 26.8
  },
  "base": {
   "watertight": true,
@@ -15,7 +15,7 @@
    63.2,
    14.5
   ],
-  "volume_cm3": 21.4
+  "volume_cm3": 21.3
  },
  "fit_check_mm3": {
   "shell_vs_base": 0.0,

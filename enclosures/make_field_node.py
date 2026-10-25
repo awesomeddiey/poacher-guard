@@ -72,16 +72,16 @@ def shell():
     # sensor slit (rounded) with a soft outer bevel, below the visor
     zs = FLAME["post"] + FLAME["T"] + FLAME["sensor_z"]
     sh = D(sh, [stadium_y(xc, zs, SLIT_W, SLIT_H, YIN - 3, YO1 + 3), stadium_y(xc, zs, SLIT_W + 3.0, SLIT_H + 3.0, YO1 - 0.9, YO1 + 3)])
-    # rear cable port, stadium
-    sh = D(sh, [stadium_y(22.0, 12.5, 26.0, 9.0, YO0 - 1, 1.0)])
+    # rear cable port, a wide stadium for two USB cables
+    sh = D(sh, [stadium_y(30.0, 12.5, 40.0, 9.0, YO0 - 1, 1.0)])
     # vents on the left side: 7 vertical slots
     sh = D(sh, [stadium_x(YIN / 2 + (i - 3) * 5.2, 13.0, 1.8 + 9.0, 1.8, XO0 - 1, 1.0) if False else
                 B(XO0 - 1, 1.0, YIN / 2 + (i - 3) * 5.2 - 0.9, YIN / 2 + (i - 3) * 5.2 + 0.9, 5.0, 19.5) for i in range(7)])
     # camera deck: shallow recess, four zip-tie slots, cable hole
     cx, cy = XIN / 2, YIN / 2 - 3.0; pw, pd, pr = PAD
     sh = D(sh, [B(cx - pw / 2, cx + pw / 2, cy - pd / 2, cy + pd / 2, HS - pr, HS + 1)])
-    ties = [B(cx + sx * (pw / 2 - 3.0) - 3.0, cx + sx * (pw / 2 - 3.0) + 3.0, cy + sy * (pd / 2 - 3.0) - 1.0, cy + sy * (pd / 2 - 3.0) + 1.0, HS - WALL - 1, HS + 1) for sx in (-1, 1) for sy in (-1, 1)]
-    sh = D(sh, ties + [B(cx + 6, cx + 18, YO0 + 12, YO0 + 19, HS - WALL - 1, HS + 1)])
+    ties = [B(cx + sx * (pw / 2 - 3.0) - 1.6, cx + sx * (pw / 2 - 3.0) + 1.6, cy + sy * (pd / 2 - 3.0) - 1.9, cy + sy * (pd / 2 - 3.0) + 1.9, HS - WALL - 1, HS + 1) for sx in (-1, 1) for sy in (-1, 1)]   # 3.2 x 3.8 mm slots for 2.5 mm cable ties
+    sh = D(sh, ties + [B(cx + 5, cx + 19, 4.8, 10.2, HS - WALL - 1, HS + 1)])
     # engraved wordmark on the right side
     wm = wordmark_mesh(); wm.apply_translation([XO1 - 0.6 + 0.0, YIN / 2, 12.0]); sh = D(sh, [wm])
     # screw bosses hanging from the roof, ending above the base ring
@@ -105,8 +105,8 @@ def base(bosses):
     tx, ty = fl_x1 + 6.5, YIN / 2                                                                      # tripod boss
     parts.append(Cz(tx, ty, 0, 6.0, 6.2))
     b = U(parts)
-    cuts = [Cz(x, y, -PLATE - 1, 0.5, 1.75, 24) for x, y in bosses]                                    # screw holes
-    cuts += [trimesh.creation.cone(radius=3.4, height=2.0, sections=24, transform=tr([x, y, -PLATE + 2.0]) @ rot(np.pi, [1, 0, 0])) for x, y in bosses]
+    cuts = [Cz(x, y, -PLATE - 1, 3.4, 1.75, 24) for x, y in bosses]   # also pierces the locating lip                                    # screw holes
+    cuts += [hull([Cz(x, y, -PLATE - 0.5, -PLATE - 0.49, 3.9, 32), Cz(x, y, -PLATE + 1.8, -PLATE + 1.81, 1.6, 32)]) for x, y in bosses]   # countersink: wide at the bottom face, seats a flat-head M3
     cuts += [Cz(tx, ty, -PLATE - 1, 6.0, 3.2, 40)]                                                     # 1/4-20 tripod hole (self-tapping, or press in a nut)
     cuts += [Cz(x, y, -PLATE - 0.01, -PLATE + 1.0, 5.2, 40) for x, y in CORN]                          # rubber-foot pockets
     cuts += [Cz(fl_x0 + 2.5, my0 + 3.0, FLAME["post"] - 8, FLAME["post"] + 0.1, 1.2, 20)]              # flame module screw pilot

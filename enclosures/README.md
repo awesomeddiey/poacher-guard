@@ -19,7 +19,7 @@ Assembled: 69 x 73 x 31 mm. Previews are in `previews/`.
 ## Features
 * **Front:** a slim rounded slit for the flame sensor under a full-width sun brow.
 * **Top:** a camera deck (52 x 32 mm recess) with four zip-tie slots and a cable hole into the body.
-* **Rear:** one cable port (26 x 9 mm) for the ESP32 USB lead and the webcam lead.
+* **Rear:** one wide cable port (40 x 9 mm) for the ESP32 USB lead and the webcam lead.
 * **Left side:** seven vent slots. **Right side:** engraved POACHER GUARD wordmark.
 * **Underneath:** four hidden M3 screws, four rubber-foot pockets and a 1/4-inch tripod thread in the middle.
 * The report checks that the parts do not overlap and that the boards clear every wall (0 mm3 overlap).
@@ -54,3 +54,7 @@ Assembled: 69 x 73 x 31 mm. Previews are in `previews/`.
 ## Honest notes
 * The casing is splash resistant at best (vents, cable port and camera slots are open). Keep it dry, or add a rain hood outdoors.
 * Keep the node out of direct sunlight, because the sun gives false readings on infrared flame sensors.
+
+## Assembly animation
+
+`assembly.html` is a self-contained 3D viewer (no internet needed): ten steps, play/pause, scrub, speed, x-ray shell, drag to orbit. `animation/assembly.mp4` is the same sequence as a 30 s video (1280x720). Rebuild with `python animation/build_animation.py` after changing any STL. Component models (ESP32 DevKit V1, flame module, USB webcam, cables, screws, zip ties, feet) are in `stl/components/`; they are stand-ins for fit checking, not for printing.

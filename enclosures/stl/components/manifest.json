@@ -1,0 +1,118 @@
+{
+ "esp32_pcb": {
+  "color": "#111827",
+  "triangles": 80
+ },
+ "esp32_module": {
+  "color": "#cbd5e1",
+  "triangles": 12
+ },
+ "esp32_headers": {
+  "color": "#0b1220",
+  "triangles": 24
+ },
+ "esp32_pins": {
+  "color": "#d4a017",
+  "triangles": 432
+ },
+ "esp32_antenna": {
+  "color": "#d4a017",
+  "triangles": 12
+ },
+ "flame_pcb": {
+  "color": "#166534",
+  "triangles": 28
+ },
+ "flame_pot": {
+  "color": "#3b82f6",
+  "triangles": 12
+ },
+ "flame_chip": {
+  "color": "#0b1220",
+  "triangles": 12
+ },
+ "flame_sensor": {
+  "color": "#111827",
+  "triangles": 426
+ },
+ "flame_leds": {
+  "color": "#ef4444",
+  "triangles": 24
+ },
+ "flame_header": {
+  "color": "#0b1220",
+  "triangles": 12
+ },
+ "esp_usb_plug": {
+  "color": "#0b1220",
+  "triangles": 12
+ },
+ "esp_usb_cable": {
+  "color": "#e5e7eb",
+  "triangles": 5440
+ },
+ "cam_usb_cable": {
+  "color": "#111827",
+  "triangles": 9520
+ },
+ "webcam_base": {
+  "color": "#111827",
+  "triangles": 428
+ },
+ "webcam_neck": {
+  "color": "#1f2937",
+  "triangles": 428
+ },
+ "webcam_head": {
+  "color": "#111827",
+  "triangles": 428
+ },
+ "webcam_lens_ring": {
+  "color": "#9ca3af",
+  "triangles": 192
+ },
+ "webcam_lens": {
+  "color": "#0f172a",
+  "triangles": 192
+ },
+ "webcam_led": {
+  "color": "#22c55e",
+  "triangles": 64
+ },
+ "zip_ties": {
+  "color": "#f8fafc",
+  "triangles": 72
+ },
+ "screw_1": {
+  "color": "#9ca3af",
+  "triangles": 222
+ },
+ "screw_2": {
+  "color": "#9ca3af",
+  "triangles": 222
+ },
+ "screw_3": {
+  "color": "#9ca3af",
+  "triangles": 222
+ },
+ "screw_4": {
+  "color": "#9ca3af",
+  "triangles": 222
+ },
+ "foot_1": {
+  "color": "#0b1220",
+  "triangles": 128
+ },
+ "foot_2": {
+  "color": "#0b1220",
+  "triangles": 128
+ },
+ "foot_3": {
+  "color": "#0b1220",
+  "triangles": 128
+ },
+ "foot_4": {
+  "color": "#0b1220",
+  "triangles": 128
+ }
+}

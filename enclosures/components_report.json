@@ -1,0 +1,60 @@
+{
+ "esp32_pcb": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "esp32_module": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "esp32_headers": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "flame_pcb": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "flame_sensor": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "esp_usb_plug": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "webcam_base": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "webcam_head": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "zip_ties": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "screw_1": {
+  "shell_mm3": 24.2,
+  "base_mm3": 0.0
+ },
+ "screw_4": {
+  "shell_mm3": 24.2,
+  "base_mm3": 0.0
+ },
+ "foot_1": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
+ "esp_usb_cable": {
+  "points_inside_solid": 0,
+  "min_clearance_mm": 12.22,
+  "cable_radius_mm": 1.8
+ },
+ "cam_usb_cable": {
+  "points_inside_solid": 0,
+  "min_clearance_mm": 2.49,
+  "cable_radius_mm": 2.2
+ }
+}
