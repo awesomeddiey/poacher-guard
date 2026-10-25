@@ -131,6 +131,7 @@ for k, (pts, r) in CENTER.items():       # cables: the centre line must stay at 
     both = trimesh.util.concatenate([sh, bs]); d = np.abs(trimesh.proximity.closest_point(both, pts)[1])
     inside = int(sh.contains(pts).sum() + bs.contains(pts).sum())
     rep[k] = dict(points_inside_solid=inside, min_clearance_mm=round(float(d.min()), 2), cable_radius_mm=r)
+json.dump({k: dict(points=v[0][::4].tolist() + [v[0][-1].tolist()], radius=v[1]) for k, v in CENTER.items()}, open(OUT / "cable_paths.json", "w"))   # smooth centre lines for the STEP export
 print(json.dumps(rep, indent=0)); (Path(__file__).parent / "components_report.json").write_text(json.dumps(rep, indent=1))
 
 # ---- fully coloured assembly (glTF binary), standing upright: x (up the trunk) -> up, z (away from the tree) -> towards the viewer, metres ----
