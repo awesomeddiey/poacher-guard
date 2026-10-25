@@ -54,7 +54,7 @@
  },
  "cam_usb_cable": {
   "points_inside_solid": 0,
-  "min_clearance_mm": 2.49,
+  "min_clearance_mm": 2.63,
   "cable_radius_mm": 2.2
  }
 }

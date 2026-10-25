@@ -2,20 +2,20 @@
  "shell": {
   "watertight": true,
   "size_mm": [
-   69.2,
-   72.6,
-   26.6
+   150.0,
+   100.0,
+   40.5
   ],
-  "volume_cm3": 26.8
+  "volume_cm3": 82.6
  },
  "base": {
   "watertight": true,
   "size_mm": [
-   69.2,
-   63.2,
-   14.5
+   150.0,
+   96.0,
+   18.5
   ],
-  "volume_cm3": 21.3
+  "volume_cm3": 68.2
  },
  "fit_check_mm3": {
   "shell_vs_base": 0.0,
@@ -25,22 +25,22 @@
   "flame_vs_base": 0.0
  },
  "assembled_mm": [
-  69.2,
-  72.6,
-  31.1
+  150.0,
+  100.0,
+  45.0
  ],
  "layout": {
   "esp": [
-   5.0,
-   33.5
+   12.0,
+   40.5
   ],
   "flame": [
-   36.5,
-   50.5
+   65.4,
+   79.4
   ],
   "tripod": [
-   57.0,
-   29.0
+   102.4,
+   37.4
   ]
  }
 }

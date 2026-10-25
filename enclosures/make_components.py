@@ -50,8 +50,8 @@ def tube(points, r, n=10, name=None):
 
 
 ESP, FL = C.ESP, C.FLAME
-ex0 = 5.0; ex1 = ex0 + ESP["W"]; y0 = 1.5 + C.FIT; zb = ESP["pins"]; ecx = (ex0 + ex1) / 2
-fx0 = ex1 + 3.0; fx1 = fx0 + FL["W"]; fcx = (fx0 + fx1) / 2
+ex0 = C.ESP_X0; ex1 = ex0 + ESP["W"]; y0 = 1.5 + C.FIT; zb = ESP["pins"]; ecx = (ex0 + ex1) / 2
+fx0 = C.FL_X0; fx1 = fx0 + FL["W"]; fcx = (fx0 + fx1) / 2
 sy = C.YIN - 2.0; zf = FL["post"]
 cx, cy = C.XIN / 2, C.YIN / 2 - 3.0; pw, pd, pr = C.PAD; zdeck = C.HS - pr
 
@@ -71,14 +71,15 @@ parts["flame_pcb"] = (U([fpcb, B(fx0 + 1.5, fx1 - 1.5, sy - FL["L"] + 3, sy - FL
 parts["flame_pot"] = (B(fcx - 4, fcx + 4, sy - FL["L"] + 8, sy - FL["L"] + 13, zf + FL["T"], zf + FL["T"] + 4.5), "#3b82f6")
 parts["flame_chip"] = (B(fcx - 2.5, fcx + 2.5, sy - 14, sy - 8, zf + FL["T"], zf + FL["T"] + 1.5), "#0b1220")
 zs = zf + FL["T"] + FL["sensor_z"]
-parts["flame_sensor"] = (U([Cy(fcx, sy - 6, sy + 0.6, zs, 2.5, 32), icosphere(subdivisions=2, radius=2.5).apply_translation([fcx, sy + 0.6, zs]), B(fcx - 2.5, fcx + 2.5, sy - 10, sy - 6, zf + FL["T"], zs)]), "#111827")
+tipy = C.YO1 + FL["poke"]      # the IR head pokes out through the front wall
+parts["flame_sensor"] = (U([Cy(fcx, sy - 6, tipy - 2.5, zs, 2.5, 32), icosphere(subdivisions=2, radius=2.5).apply_translation([fcx, tipy - 2.5, zs]), B(fcx - 2.5, fcx + 2.5, sy - 10, sy - 6, zf + FL["T"], zs)]), "#111827")
 parts["flame_leds"] = (U([B(fcx + 3.5, fcx + 5.0, sy - 20, sy - 18.5, zf + FL["T"], zf + FL["T"] + 0.8), B(fcx - 5.0, fcx - 3.5, sy - 20, sy - 18.5, zf + FL["T"], zf + FL["T"] + 0.8)]), "#ef4444")
 parts["flame_header"] = (B(fcx - 5.1, fcx + 5.1, sy - FL["L"] + 0.5, sy - FL["L"] + 3, zf + FL["T"], zf + FL["T"] + 2.5), "#0b1220")
 # ---- USB cables: ESP32 (micro-B) and webcam (type A leaves the casing) ----
 parts["esp_usb_plug"] = (U([B(ecx - 5.5, ecx + 5.5, y0 - 16, y0 - 1.6, zb + 0.9, zb + 5.0)]), "#0b1220")
 parts["esp_usb_cable"] = (tube([(ecx, y0 - 16, zb + 3.0), (ecx, y0 - 30, zb + 3.0), (ecx, y0 - 55, zb + 0.5), (ecx + 5, y0 - 80, -C.PLATE + 1.8), (ecx + 20, y0 - 105, -C.PLATE + 1.8)], 1.8, name="esp_usb_cable"), "#e5e7eb")
-hx, hy = cx + 12, 7.5
-parts["cam_usb_cable"] = (tube([(hx, hy, zdeck + 6), (hx, hy, C.HS - 3), (hx - 1, 4.5, 16.5), (hx - 3, -2.0, 12.6), (hx - 3, -22, 12.6), (hx - 6, -50, 6), (hx + 10, -78, -C.PLATE + 1.8), (hx + 34, -100, -C.PLATE + 1.8)], 2.2, name="cam_usb_cable"), "#111827")
+hx, hy = C.CAM_HX, cy - pd / 2 - 2.5
+parts["cam_usb_cable"] = (tube([(hx, hy, zdeck + 6), (hx, hy, C.HS - 4), (hx, hy - 1, 26), (hx - 0.5, 9.0, 14.6), (hx - 1, -2.0, 12.6), (hx - 1, -22, 12.6), (hx - 4, -50, 6), (hx + 10, -78, -C.PLATE + 1.8), (hx + 34, -100, -C.PLATE + 1.8)], 2.2, name="cam_usb_cable"), "#111827")
 # ---- webcam on a clip-style base (generic) ----
 fy0, fy1 = cy - 15, cy + 15
 parts["webcam_base"] = (rbox(cx - 25, cx + 25, fy0, fy1, zdeck, zdeck + 6, 2.5), "#111827")

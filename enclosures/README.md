@@ -10,16 +10,16 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 
 | File (`stl/`) | What | Colour | Size (mm) |
 |---|---|---|---|
-| `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 69.2 x 72.6 x 26.6 |
-| `field_node_base.stl` | base plate with board supports and tripod thread | blue | 69.2 x 63.2 x 14.5 |
+| `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
+| `field_node_base.stl` | base plate with board supports and tripod thread | blue | 150 x 96 x 18.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
-Assembled: 69 x 73 x 31 mm. Previews are in `previews/`.
+Assembled: 150 x 100 x 45 mm (the webcam sits on top of that). Needs a print bed of at least 160 x 110 mm. Previews are in `previews/`.
 
 ## Features
-* **Front:** a slim rounded slit for the flame sensor under a full-width sun brow.
+* **Front:** a round hole through which the IR flame sensor head pokes out 6 mm, under a full-width sun brow.
 * **Top:** a camera deck (52 x 32 mm recess) with four zip-tie slots and a cable hole into the body.
-* **Rear:** one wide cable port (40 x 9 mm) for the ESP32 USB lead and the webcam lead.
+* **Rear:** two ports: a 22 x 9 mm port lined up with the ESP32 micro-USB socket, and a 14 x 9 mm port for the webcam lead.
 * **Left side:** seven vent slots. **Right side:** engraved POACHER GUARD wordmark.
 * **Underneath:** four hidden M3 screws, four rubber-foot pockets and a 1/4-inch tripod thread in the middle.
 * The report checks that the parts do not overlap and that the boards clear every wall (0 mm3 overlap).
@@ -40,7 +40,7 @@ Assembled: 69 x 73 x 31 mm. Previews are in `previews/`.
 | Two colours | print the shell in white and the base in blue (a second colour is just a second spool) |
 
 ## Assembly
-1. Fix the flame module on its post with one M3 x 6 self-tapping screw, sensor pointing at the slit.
+1. Fix the flame module on its post with one M3 x 6 self-tapping screw, sensor head poking through the front hole.
 2. Drop the ESP32 onto the four blocks (USB end towards the rear port). Add a dab of hot glue on one block.
 3. Plug in both USB cables, lead them through the rear port, set the shell over the base and fit the four screws from underneath.
 4. Zip-tie the webcam to the deck and pass its cable through the cable hole to the rear port.
@@ -57,4 +57,4 @@ Assembled: 69 x 73 x 31 mm. Previews are in `previews/`.
 
 ## Assembly animation
 
-`assembly.html` is a self-contained 3D viewer (no internet needed): ten steps, play/pause, scrub, speed, x-ray shell, drag to orbit. `animation/assembly.mp4` is the same sequence as a 30 s video (1280x720). Rebuild with `python animation/build_animation.py` after changing any STL. Component models (ESP32 DevKit V1, flame module, USB webcam, cables, screws, zip ties, feet) are in `stl/components/`; they are stand-ins for fit checking, not for printing.
+`assembly.html` is a self-contained 3D viewer (no internet needed): ten steps, play/pause, scrub, speed, x-ray shell, drag to orbit. Rebuild with `python animation/build_animation.py` after changing any STL. Component models (ESP32 DevKit V1, flame module, USB webcam, cables, screws, zip ties, feet) are in `stl/components/`; they are stand-ins for fit checking, not for printing.
