@@ -70,7 +70,8 @@ class AlertEngine:
         return ev
 
     # ---- camera --------------------------------------------------------
-    def on_person(self, frame, boxes: list[dict[str, Any]], weapon: bool = False) -> dict[str, Any] | None:
+    def on_person(self, frame, boxes: list[dict[str, Any]], weapon: bool = False,
+                  latency_s: float | None = None) -> dict[str, Any] | None:
         """A human was confirmed in view. `boxes` = [{label, conf, xyxy}, ...]."""
         rangers = self.registry.ranger_present()
         n = len(boxes)
@@ -79,7 +80,7 @@ class AlertEngine:
                 return None
             r = rangers[0]
             return self._emit("ranger", "info", f"Authorised ranger on camera: {r['ranger']}", frame,
-                              detail={"people": n, "tag": r["id"], "rssi": r["rssi"]})
+                              detail={"people": n, "tag": r["id"], "rssi": r["rssi"], "latency_s": latency_s})
         # No tag in range (or a weapon is visible, which a tag cannot excuse).
         armed = weapon or (self.clock() - self._last_gunshot_ts) <= self.correlate_window
         kind = "poacher"
@@ -91,7 +92,7 @@ class AlertEngine:
         else:
             title = f"POACHER ALERT - {n} unauthorised person{'s' if n != 1 else ''}, no ranger tag"
         detail = {"people": n, "weapon_seen": weapon, "ranger_tags_nearby": len(rangers),
-                  "boxes": boxes[:10]}
+                  "boxes": boxes[:10], "latency_s": latency_s}
         if rangers and weapon:
             detail["note"] = "Ranger tag nearby but weapon detected - verify"
         return self._emit("poacher", "critical", title, frame, detail=detail)

@@ -1,0 +1,5 @@
+{
+ "epoch1_val_mAP50": 0.23279,
+ "epoch1_val_mAP50_95": 0.09247,
+ "epoch1_val_recall": 0.34783
+}

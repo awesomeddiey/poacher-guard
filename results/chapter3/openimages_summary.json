@@ -1,0 +1,19 @@
+{
+  "african": {
+    "images": 168,
+    "boxes": 672
+  },
+  "african_rural": {
+    "images": 42,
+    "boxes": 167
+  },
+  "control": {
+    "images": 168,
+    "boxes": 669
+  },
+  "source_splits_african": {
+    "train": 151,
+    "test": 9,
+    "validation": 8
+  }
+}

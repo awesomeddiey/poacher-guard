@@ -69,6 +69,7 @@ class VisionWorker(threading.Thread):
         need = self.cfg.get("confirm_frames", 3)
         n, t0, shown, boxes = 0, time.time(), 0, []
         weapon = False
+        first_seen = None  # read time of the first frame of the current sighting (for alert latency)
         while not self._stop.is_set():
             ok, frame = cap.read()
             if not ok:
@@ -78,16 +79,21 @@ class VisionWorker(threading.Thread):
                 time.sleep(0.2)
                 continue
             n += 1
+            t_read = time.time()
             if n % every == 0:
                 boxes, weapon = self._detect(model, frame, conf)
                 self._hist.append(bool(boxes))
+                if boxes and first_seen is None: first_seen = t_read
+                if not any(self._hist): first_seen = None
                 self.status["people"] = sum(1 for b in boxes if b["label"] in self.person_classes)
                 self.status["detections"] = [{"label": b["label"], "conf": b["conf"]} for b in boxes][:12]
                 self.status["weapon"] = weapon
                 if sum(self._hist) >= need and boxes:
                     try:
-                        self.engine.on_person(self._annotate(frame, boxes),
-                                              boxes, weapon)
+                        latency = time.time() - first_seen if first_seen else None
+                        ev = self.engine.on_person(self._annotate(frame, boxes), boxes, weapon, latency_s=latency)
+                        if ev and latency is not None:
+                            self.status["last_latency_s"] = round(latency, 3)
                     except Exception:  # noqa: BLE001
                         log.exception("engine.on_person failed")
             shown += 1

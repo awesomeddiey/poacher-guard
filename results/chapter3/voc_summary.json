@@ -1,0 +1,17 @@
+{
+  "train": {
+    "images": 1600,
+    "images_with_people": 1200,
+    "person_boxes": 2755
+  },
+  "val": {
+    "images": 300,
+    "images_with_people": 67,
+    "person_boxes": 161
+  },
+  "test": {
+    "images": 1000,
+    "images_with_people": 387,
+    "person_boxes": 897
+  }
+}

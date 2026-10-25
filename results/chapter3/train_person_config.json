@@ -1,0 +1,20 @@
+{
+  "data": "/tmp/claude-0/data/voc_person80.yaml",
+  "imgsz": 512,
+  "batch": 16,
+  "optimizer": "AdamW",
+  "lr0": 0.001,
+  "seed": 42,
+  "deterministic": true,
+  "device": "cpu",
+  "workers": 2,
+  "time": 0.8,
+  "epochs": 30,
+  "patience": 100,
+  "plots": false,
+  "project": "/tmp/claude-0/data/runs",
+  "name": "person_ft",
+  "exist_ok": true,
+  "amp": false,
+  "wall_minutes": 48.5
+}

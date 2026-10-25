@@ -1,0 +1,494 @@
+{
+ "cv_ap_by_C": {
+  "0.01": 0.9796136097260678,
+  "0.1": 0.9867636770567172,
+  "1": 0.9919963136162757,
+  "10": 0.9938356601280798,
+  "100": 0.9887627436581065
+ },
+ "chosen_C": 10,
+ "threshold_from_train": 0.51,
+ "counts": {
+  "train_gun": 211,
+  "train_other": 1600,
+  "test_gun": 52,
+  "test_other": 400,
+  "per_gun_class_train": {
+   "IMI Desert Eagle": 80,
+   "AK-12": 73,
+   "AK-47": 58
+  },
+  "per_gun_class_test": {
+   "IMI Desert Eagle": 20,
+   "AK-12": 18,
+   "AK-47": 14
+  }
+ },
+ "zero_035": {
+  "threshold": 0.35,
+  "tp": 50,
+  "fp": 9,
+  "fn": 2,
+  "tn": 391,
+  "precision": 0.847457627118644,
+  "recall": 0.9615384615384616,
+  "f1": 0.9009009009009009,
+  "fpr": 0.0225,
+  "recall_ci": [
+   0.8701857125563403,
+   0.9893885116779224
+  ],
+  "fpr_ci": [
+   0.011881448169963291,
+   0.04220312360273175
+  ],
+  "ap": 0.9754020689604517,
+  "auc": 0.9969711538461538
+ },
+ "zero_train_thr": {
+  "threshold": 0.51,
+  "tp": 47,
+  "fp": 4,
+  "fn": 5,
+  "tn": 396,
+  "precision": 0.9215686274509803,
+  "recall": 0.9038461538461539,
+  "f1": 0.9126213592233009,
+  "fpr": 0.01,
+  "recall_ci": [
+   0.79390118138839,
+   0.9582262648165898
+  ],
+  "fpr_ci": [
+   0.003895420793278812,
+   0.025426966994408242
+  ],
+  "ap": 0.9754020689604517,
+  "auc": 0.9969711538461538
+ },
+ "clf_050": {
+  "threshold": 0.5,
+  "tp": 51,
+  "fp": 13,
+  "fn": 1,
+  "tn": 387,
+  "precision": 0.796875,
+  "recall": 0.9807692307692307,
+  "f1": 0.8793103448275861,
+  "fpr": 0.0325,
+  "recall_ci": [
+   0.8987925373197556,
+   0.9965972795909344
+  ],
+  "fpr_ci": [
+   0.019089659086961887,
+   0.054804659873739545
+  ],
+  "ap": 0.9851091085743626,
+  "auc": 0.9962980769230769
+ },
+ "clf_cv_thr": {
+  "threshold": 0.99,
+  "tp": 50,
+  "fp": 1,
+  "fn": 2,
+  "tn": 399,
+  "precision": 0.9803921568627451,
+  "recall": 0.9615384615384616,
+  "f1": 0.970873786407767,
+  "fpr": 0.0025,
+  "recall_ci": [
+   0.8701857125563403,
+   0.9893885116779224
+  ],
+  "fpr_ci": [
+   0.0004414364294344091,
+   0.014023640967247853
+  ],
+  "ap": 0.9851091085743626,
+  "auc": 0.9962980769230769
+ },
+ "threshold_clf_from_cv": 0.99,
+ "train_clf_errors": 57,
+ "false_alarms_by_category": [
+  {
+   "category": "can_opening",
+   "clips": 8,
+   "zero": 5,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "airplane",
+   "clips": 8,
+   "zero": 2,
+   "clf": 1,
+   "clfcv": 0
+  },
+  {
+   "category": "glass_breaking",
+   "clips": 8,
+   "zero": 1,
+   "clf": 2,
+   "clfcv": 0
+  },
+  {
+   "category": "thunderstorm",
+   "clips": 8,
+   "zero": 1,
+   "clf": 2,
+   "clfcv": 1
+  },
+  {
+   "category": "fireworks",
+   "clips": 8,
+   "zero": 0,
+   "clf": 5,
+   "clfcv": 0
+  },
+  {
+   "category": "crackling_fire",
+   "clips": 8,
+   "zero": 0,
+   "clf": 1,
+   "clfcv": 0
+  },
+  {
+   "category": "crow",
+   "clips": 8,
+   "zero": 0,
+   "clf": 1,
+   "clfcv": 0
+  },
+  {
+   "category": "footsteps",
+   "clips": 8,
+   "zero": 0,
+   "clf": 1,
+   "clfcv": 0
+  },
+  {
+   "category": "breathing",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "brushing_teeth",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "car_horn",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "cat",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "chainsaw",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "chirping_birds",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "church_bells",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "clapping",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "clock_alarm",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "clock_tick",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "coughing",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "cow",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "crickets",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "crying_baby",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "dog",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "door_wood_creaks",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "door_wood_knock",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "drinking_sipping",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "engine",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "frog",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "hand_saw",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "helicopter",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "hen",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "insects",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "keyboard_typing",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "laughing",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "mouse_click",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "pig",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "pouring_water",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "rain",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "rooster",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "sea_waves",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "sheep",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "siren",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "sneezing",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "snoring",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "toilet_flush",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "train",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "vacuum_cleaner",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "washing_machine",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "water_drops",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  },
+  {
+   "category": "wind",
+   "clips": 8,
+   "zero": 0,
+   "clf": 0,
+   "clfcv": 0
+  }
+ ],
+ "clf_missed_gun_clips": [
+  "AK-47"
+ ],
+ "noise": {
+  "20": {
+   "zero": 0.9038461538461539,
+   "clf": 0.9807692307692307,
+   "clf_cv": 0.9230769230769231,
+   "n": 52
+  },
+  "10": {
+   "zero": 0.7884615384615384,
+   "clf": 0.8846153846153846,
+   "clf_cv": 0.7884615384615384,
+   "n": 52
+  },
+  "0": {
+   "zero": 0.5,
+   "clf": 0.7692307692307693,
+   "clf_cv": 0.5384615384615384,
+   "n": 52
+  },
+  "-10": {
+   "zero": 0.3269230769230769,
+   "clf": 0.5,
+   "clf_cv": 0.34615384615384615,
+   "n": 52
+  }
+ }
+}
