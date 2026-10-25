@@ -11,24 +11,24 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 | File (`stl/`) | What | Colour | Size (mm) |
 |---|---|---|---|
 | `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
-| `field_node_base.stl` | base plate with board supports and tripod thread | blue | 150 x 96 x 18.5 |
+| `field_node_base.stl` | back plate with strap lugs, board supports and flame-module post | blue | 150 x 136 x 29.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
-Assembled: 150 x 100 x 45 mm (the webcam sits on top of that). Needs a print bed of at least 160 x 110 mm. Previews are in `previews/`.
+Assembled body: 150 x 100 x 45 mm, portrait, plus 18 mm strap lugs each side (136 mm wide overall) and the webcam standing on the top end. Needs a print bed of at least 160 x 140 mm (base) . Previews are in `previews/`.
 
 ## Features
-* **Front:** a round hole through which the IR flame sensor head pokes out 6 mm, under a full-width sun brow.
-* **Top:** a camera deck (52 x 32 mm recess) with four zip-tie slots and a cable hole into the body.
-* **Rear:** two ports: a 22 x 9 mm port lined up with the ESP32 micro-USB socket, and a 14 x 9 mm port for the webcam lead.
+* **Front (away from the tree):** a round hole through which the IR flame sensor head pokes out 6 mm.
+* **Top end:** a camera deck (50 x 26 mm recess) with four zip-tie slots and a cable hole just below it; the webcam stands on it with its lens facing away from the tree.
+* **Bottom end:** two ports, 22 x 9 mm lined up with the ESP32 micro-USB socket and 14 x 9 mm for the webcam lead. Cables hang down so rain runs off.
+* **Back plate (against the tree):** four strap lugs (two each side) with 30 x 5 mm windows for a 25 mm strap or ratchet strap, four rubber-foot pockets to grip the bark, four hidden M3 screws from the tree side.
 * **Left side:** seven vent slots. **Right side:** engraved POACHER GUARD wordmark.
-* **Underneath:** four hidden M3 screws, four rubber-foot pockets and a 1/4-inch tripod thread in the middle.
 * The report checks that the parts do not overlap and that the boards clear every wall (0 mm3 overlap).
 
 ## What to buy
 * 4 x M3 x 16 self-tapping screws (or M3 x 16 screws with heat-set inserts)
 * 4 x self-adhesive rubber feet, 10 mm round
 * 4 x cable ties, 2.5 mm wide, for the webcam
-* Optional: a 1/4-20 nut to press into the tripod hole, a silica gel sachet
+* Optional: a silica gel sachet
 
 ## Printing
 | Setting | Value |
@@ -41,9 +41,9 @@ Assembled: 150 x 100 x 45 mm (the webcam sits on top of that). Needs a print bed
 
 ## Assembly
 1. Fix the flame module on its post with one M3 x 6 self-tapping screw, sensor head poking through the front hole.
-2. Drop the ESP32 onto the four blocks (USB end towards the rear port). Add a dab of hot glue on one block.
-3. Plug in both USB cables, lead them through the rear port, set the shell over the base and fit the four screws from underneath.
-4. Zip-tie the webcam to the deck and pass its cable through the cable hole to the rear port.
+2. Drop the ESP32 onto the four blocks (USB end towards the bottom wall). Add a dab of hot glue on one block.
+3. Plug in both USB cables, lead them out of the bottom ports, set the shell over the back plate and fit the four screws from the tree side. Then strap the unit to the trunk, camera end up.
+4. Zip-tie the webcam to the top-end deck and pass its cable through the hole below the deck to its own bottom port.
 
 ## Check before printing (measure with callipers)
 * Boards differ a little between makers. Edit `ESP`, `FLAME`, `PAD` and the inner size `XIN, YIN, ZIN` at the top of `make_field_node.py`, then run it again.

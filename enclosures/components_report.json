@@ -23,6 +23,10 @@
   "shell_mm3": 0.0,
   "base_mm3": 0.0
  },
+ "esp32_pins": {
+  "shell_mm3": 0.0,
+  "base_mm3": 0.0
+ },
  "webcam_base": {
   "shell_mm3": 0.0,
   "base_mm3": 0.0
@@ -54,7 +58,7 @@
  },
  "cam_usb_cable": {
   "points_inside_solid": 0,
-  "min_clearance_mm": 2.63,
+  "min_clearance_mm": 2.56,
   "cable_radius_mm": 2.2
  }
 }

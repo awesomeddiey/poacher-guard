@@ -11,31 +11,31 @@ const DUR = 30.0;
 const GROUPS = [
   { match: (n) => n === "base", t0: 0.0, t1: 1.3, from: [0, 0, -50], fade: true },
   { match: (n) => n.startsWith("esp32_"), t0: 1.8, t1: 3.8, from: [0, 0, 150] },
-  { match: (n) => n.startsWith("flame_"), t0: 4.2, t1: 6.0, from: [0, 60, 80] },
-  { match: (n) => n.startsWith("esp_usb"), t0: 6.5, t1: 8.1, from: [0, -110, 0] },
+  { match: (n) => n.startsWith("flame_"), t0: 4.2, t1: 6.0, from: [0, 0, 80] },
+  { match: (n) => n.startsWith("esp_usb"), t0: 6.5, t1: 8.1, from: [-110, 0, 0] },
   { match: (n) => n === "shell", t0: 8.8, t1: 11.2, from: [0, 0, 150] },
   { match: (n) => n.startsWith("screw_"), t0: 14.2, t1: 15.6, from: [0, 0, -70], stagger: 0.25 },
   { match: (n) => n.startsWith("foot_"), t0: 16.2, t1: 17.0, from: [0, 0, -18], stagger: 0.14 },
-  { match: (n) => n.startsWith("webcam_"), t0: 17.8, t1: 19.8, from: [0, 0, 120] },
-  { match: (n) => n === "zip_ties", t0: 20.1, t1: 20.9, from: [0, 0, 12], fade: true },
-  { match: (n) => n === "cam_usb_cable", t0: 21.2, t1: 22.2, from: [0, -14, 0], fade: true },
+  { match: (n) => n.startsWith("webcam_"), t0: 17.8, t1: 19.8, from: [110, 0, 0] },
+  { match: (n) => n === "zip_ties", t0: 20.1, t1: 20.9, from: [12, 0, 0], fade: true },
+  { match: (n) => n === "cam_usb_cable", t0: 21.2, t1: 22.2, from: [-14, 0, 0], fade: true },
 ];
 const STEPS = [
-  [0.0, "Base plate", "Blue base: four hidden M3 holes, board blocks, a 1/4-inch tripod thread and four rubber-foot pockets."],
-  [1.8, "ESP32 DevKit V1", "Rests on the four blocks with its USB end towards the rear port."],
-  [4.2, "Flame sensor module", "Screws onto its tall post. The IR sensor head points at the round hole in the front wall and pokes out of it."],
-  [6.5, "USB lead for the ESP32", "The micro-USB plug leaves through its own rear port, lined up with the board\u2019s USB socket."],
-  [8.8, "Shell", "The white shell (150 x 100 x 45 mm with the base) lowers over the base and locates on the inner lip. The IR sensor sticks out under the sun brow."],
+  [0.0, "Base plate", "Blue back plate (this side goes on the tree): four strap lugs with 30 x 5 mm windows, hidden M3 holes, board blocks, a tall post for the flame module and four rubber-foot pockets."],
+  [1.8, "ESP32 DevKit V1", "Rests on the four blocks with its USB end towards the bottom wall."],
+  [4.2, "Flame sensor module", "Hangs on its tall post. The IR sensor head stands up towards the round hole in the front face and pokes out of it."],
+  [6.5, "USB lead for the ESP32", "The micro-USB plug leaves through its own port in the bottom end, lined up with the board's USB socket."],
+  [8.8, "Shell", "The white shell (body 150 x 100 x 45 mm) lowers over the back plate and locates on the inner lip. The IR sensor sticks out of the front face."],
   [11.4, "Inside view", "Boards, sensor and cables clear every wall (fit check: 0 mm³ overlap)."],
-  [14.2, "Screws and feet", "Four M3 x 16 screws from underneath, then four rubber feet."],
-  [17.8, "USB webcam on the deck", "The clip base sits in the 52 x 32 mm recess. The lens faces the same way as the IR sensor."],
-  [20.1, "Zip ties and webcam cable", "Ties go through the four deck slots. The cable drops through the deck hole and leaves by its own rear port."],
-  [22.6, "Done", "Plug both USB leads into the PC and run run-poacher-guard.bat. Drag to look around."],
+  [14.2, "Screws and feet", "Four M3 x 16 screws from the tree side, then four rubber feet. The strap lugs sit left and right."],
+  [17.8, "USB webcam on the deck", "The clip base sits in the 50 x 26 mm recess on the top end wall. The lens faces away from the tree, like the IR sensor."],
+  [20.1, "Zip ties and webcam cable", "Ties go through the four deck slots. The cable passes through the hole below the deck and leaves by its own port in the bottom end."],
+  [22.6, "Done", "Strap it to the trunk through the four lugs (camera end up, cables down), plug both USB leads into the PC and run run-poacher-guard.bat."],
 ];
 const CAM = [ // time, azimuth deg, elevation deg, distance, target
-  [0, 40, 30, 328, [72, 45, 0]], [2.5, 28, 40, 296, [72, 45, 8]], [5, 62, 42, 281, [80, 60, 12]], [7.2, 165, 22, 335, [40, 10, 14]],
-  [9.8, 215, 24, 406, [72, 45, 22]], [12.5, 250, 16, 367, [72, 45, 16]], [15.0, 305, -34, 335, [72, 45, -2]], [17.2, 335, 22, 367, [72, 45, 12]],
-  [19.4, 215, 26, 437, [72, 45, 34]], [22.4, 200, 22, 468, [72, 45, 26]], [30, 560, 20, 421, [72, 45, 24]],
+  [0, 40, 30, 328, [82, 55, 0]], [2.5, 28, 40, 296, [82, 55, 8]], [5, 62, 42, 281, [90, 60, 12]], [7.2, 165, 22, 335, [30, 30, 14]],
+  [9.8, 215, 24, 406, [82, 55, 22]], [12.5, 250, 16, 367, [82, 55, 16]], [15.0, 305, -34, 335, [82, 55, -2]], [17.2, 335, 22, 367, [82, 55, 12]],
+  [19.4, 215, 26, 437, [82, 55, 34]], [22.4, 200, 22, 468, [82, 55, 26]], [30, 560, 20, 421, [82, 55, 24]],
 ];
 const XRAY = [[0, 1], [11.4, 1], [12.1, 0.18], [13.8, 0.18], [14.1, 1], [30, 1]]; // shell opacity
 
@@ -44,10 +44,10 @@ const canvas = document.getElementById("c"), renderer = new THREE.WebGLRenderer(
 renderer.setPixelRatio(REC ? 1 : Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0xf4f7fc);
 const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 16 / 9, 5, 5000); camera.up.set(0, 0, 1);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x9fb3d6, 0.95));
-const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(190, -260, 420); sun.target.position.set(72, 45, 0); sun.castShadow = true;
+const sun = new THREE.DirectionalLight(0xffffff, 2.1); sun.position.set(190, -260, 420); sun.target.position.set(82, 55, 0); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -260, right: 260, top: 260, bottom: -260, near: 10, far: 1200 }); sun.shadow.bias = -0.0004; scene.add(sun, sun.target);
 const fill = new THREE.DirectionalLight(0xbcd2ff, 0.7); fill.position.set(-300, 200, 120); scene.add(fill);
-const floor = new THREE.Mesh(new THREE.CircleGeometry(900, 64), new THREE.ShadowMaterial({ opacity: 0.2 })); floor.position.set(72, 45, -6.05); floor.receiveShadow = true; scene.add(floor);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(900, 64), new THREE.ShadowMaterial({ opacity: 0.2 })); floor.position.set(82, 55, -6.05); floor.receiveShadow = true; scene.add(floor);
 const controls = new OrbitControls(camera, canvas); controls.enableDamping = true; controls.dampingFactor = 0.08;
 let auto = true; controls.addEventListener("start", () => { if (!REC) { auto = false; document.getElementById("auto").classList.remove("on"); } });
 

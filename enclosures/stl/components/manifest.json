@@ -31,10 +31,6 @@
   "color": "#0b1220",
   "triangles": 12
  },
- "flame_sensor": {
-  "color": "#111827",
-  "triangles": 426
- },
  "flame_leds": {
   "color": "#ef4444",
   "triangles": 24
@@ -42,6 +38,10 @@
  "flame_header": {
   "color": "#0b1220",
   "triangles": 12
+ },
+ "flame_sensor": {
+  "color": "#111827",
+  "triangles": 434
  },
  "esp_usb_plug": {
   "color": "#0b1220",
@@ -53,7 +53,7 @@
  },
  "cam_usb_cable": {
   "color": "#111827",
-  "triangles": 10880
+  "triangles": 14960
  },
  "webcam_base": {
   "color": "#111827",
