@@ -132,3 +132,16 @@ for k, (pts, r) in CENTER.items():       # cables: the centre line must stay at 
     inside = int(sh.contains(pts).sum() + bs.contains(pts).sum())
     rep[k] = dict(points_inside_solid=inside, min_clearance_mm=round(float(d.min()), 2), cable_radius_mm=r)
 print(json.dumps(rep, indent=0)); (Path(__file__).parent / "components_report.json").write_text(json.dumps(rep, indent=1))
+
+# ---- fully coloured assembly (glTF binary), standing upright: x (up the trunk) -> up, z (away from the tree) -> towards the viewer, metres ----
+def hexrgb(h): h = h.lstrip("#"); return [int(h[i:i + 2], 16) for i in (0, 2, 4)] + [255]
+UP = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1.0]]); SC = np.diag([0.001, 0.001, 0.001, 1.0])
+named = {"casing_shell": (sh.copy(), "#eef2f9"), "casing_base": (bs.copy(), "#2563eb")}
+named.update({k: (m.copy(), c) for k, (m, c) in parts.items()})
+low = min((SC @ UP @ np.c_[m.vertices, np.ones(len(m.vertices))].T).T[:, 1].min() for m, _ in named.values())
+scene = trimesh.Scene()
+for k, (m, c) in named.items():
+    m.apply_transform(SC @ UP); m.apply_translation([0, -low, 0]); m.visual = trimesh.visual.ColorVisuals(m, face_colors=np.tile(hexrgb(c), (len(m.faces), 1)))
+    scene.add_geometry(m, node_name=k, geom_name=k)
+scene.export(Path(__file__).parent / "stl" / "field_node_full_assembly_colour.glb")
+print("coloured assembly exported", len(named), "parts")

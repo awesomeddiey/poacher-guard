@@ -13,6 +13,7 @@ python make_field_node.py            # writes stl/*.stl and report.json (waterti
 | `field_node_shell_print_orientation.stl` | the shell, flipped so the roof lies on the bed | white | 150 x 100 x 40.5 |
 | `field_node_assembled.stl` | the shell seated on the base (the closed casing, two bodies) | white + blue | 150 x 136 x 45 |
 | `field_node_full_assembly.stl` | everything in place: casing, ESP32, flame module, webcam, cables, screws, feet, ballast | n/a | see file |
+| `field_node_full_assembly_colour.glb` | the full assembly in colour (blue base, white shell, black webcam, green boards...), standing upright, in metres. Opens in Windows 3D Viewer, Mac Preview, Blender, or any glTF viewer | colour | 150 x 136 x 45 body |
 | `field_node_base.stl` | back plate with strap lugs, board supports and flame-module post | blue | 150 x 136 x 29.5 |
 | `field_node_shell.stl` | the shell as assembled (for viewing) | | |
 
