@@ -82,7 +82,7 @@ parts["flame_sensor"] = (U([Cz(C.XH, C.YC, zf + FL["T"], tipz - 2.5, 2.5, 32), i
 # ---- USB cables: ESP32 (micro-B) and webcam (type A), both hang out of the bottom end ----
 parts["esp_usb_plug"] = (U([B(ecx - 5.5, ecx + 5.5, y0 - 16, y0 - 1.6, zb + 0.9, zb + 5.0)]), "#0b1220", TE)
 ex, ey = C.ESP_XC, C.YIN
-parts["esp_usb_cable"] = (tube([(ex, ey + 14.2, zb + 3.0), (ex, ey + 30, zb + 3.0), (ex - 8, ey + 45, zb), (ex - 30, ey + 60, 8.0), (8.0, ey + 85, 5.0), (-0.8, ey + 115, 2.0)], 1.8, name="esp_usb_cable"), "#e5e7eb", None)
+parts["esp_usb_cable"] = (tube([(ex, ey + 14.2, zb + 3.0), (ex, ey + 30, zb + 3.0), (ex - 6, ey + 45, 11.0), (ex - 13, ey + 60, 8.0), (5.0, ey + 75, 5.0), (1.8, ey + 90, 2.8), (0.4, ey + 104, 2.2), (0.4, ey + 118, 2.2)], 1.8, name="esp_usb_cable"), "#e5e7eb", None)
 # webcam lead: leaves the clip base at the rear, lies on the top end wall, runs round the left corner and down the left wall to the PC (no pass-through)
 parts["cam_usb_cable"] = (tube([(C.XO1 + 2.3, C.YC + 12, C.PAD_CZ - pd / 2 + 1.0), (C.XO1 + 2.4, C.YC + 8, 4.0), (C.XO1 + 2.4, C.YC - 25, 9.0), (C.XO1 + 2.6, C.YO0 + C.R, 10.0), (C.XO1 + 1.3, C.YO0 + C.R - 4.8, 10.0), (C.XO1 - 2.2, C.YO0 + C.R - 8.3, 10.0), (C.XO1 - C.R, C.YO0 - 2.6, 10.0), (C.XIN - 40, C.YO0 - 2.8, 10.0),
                              (60.0, C.YO0 - 4.0, 9.0), (30.0, C.YO0 - 12.0, 8.0), (12.0, C.YO0 - 24.0, 6.0), (4.0, C.YO0 - 45.0, 5.0), (-0.4, C.YO0 - 90.0, 3.0)], 2.2, name="cam_usb_cable"), "#111827", None)
