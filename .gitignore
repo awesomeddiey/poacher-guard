@@ -1,0 +1,7 @@
+data/
+runs/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+models/gunshot_head.joblib

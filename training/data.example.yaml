@@ -1,0 +1,7 @@
+path: data/poacher_dataset      # contains images/{train,val} and labels/{train,val}
+train: images/train
+val: images/val
+names:
+  0: poacher
+  1: weapon
+  2: snare

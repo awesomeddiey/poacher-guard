@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poacher Guard</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🛡️ Poacher Guard <span id="site"></span></h1>
+  <div id="chips">
+    <span class="chip" id="chip-cam">Camera</span>
+    <span class="chip" id="chip-mic">Mic</span>
+    <span class="chip" id="chip-ble">BLE</span>
+    <span class="chip" id="chip-ws">Link</span>
+    <button id="sound">🔇 Enable alarm sound</button>
+  </div>
+</header>
+
+<div id="banner" hidden>
+  <strong id="banner-title"></strong>
+  <span id="banner-time"></span>
+  <button id="banner-ack">Acknowledge</button>
+</div>
+
+<main>
+  <section class="card" id="live">
+    <h2>Live camera <small id="cam-meta"></small></h2>
+    <div class="video"><img id="video" alt="live camera"><div id="novideo">Camera offline</div></div>
+    <div class="meters">
+      <label>Mic level <progress id="lvl" max="1" value="0"></progress></label>
+      <label>Gunshot score <progress id="gs" max="1" value="0"></progress> <b id="gs-v">0.00</b></label>
+    </div>
+  </section>
+
+  <section class="card" id="mapcard">
+    <h2>Map</h2>
+    <div id="map"></div>
+  </section>
+
+  <section class="card" id="sidebar">
+    <h2>Rangers <small>(BLE tags)</small></h2>
+    <ul id="rangers"></ul>
+    <h2>Fire sensors</h2>
+    <ul id="nodes"></ul>
+    <h2>Last 24 h</h2>
+    <div id="counts"></div>
+    <div id="sim" hidden>
+      <h2>Test alerts</h2>
+      <button data-sim="poacher">Poacher</button>
+      <button data-sim="ranger">Ranger</button>
+      <button data-sim="gunshot">Gunshot</button>
+      <button data-sim="fire">Fire</button>
+    </div>
+  </section>
+
+  <section class="card" id="feedcard">
+    <h2>Alert log</h2>
+    <div id="filters">
+      <label><input type="checkbox" id="hide-ranger"> hide ranger sightings</label>
+    </div>
+    <ul id="feed"></ul>
+  </section>
+</main>
+
+<div id="lightbox" hidden><img alt="snapshot"></div>
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

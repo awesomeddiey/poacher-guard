@@ -1,0 +1,101 @@
+# Poacher Guard configuration.
+# Edit this file to match your hardware and site. Restart after changes.
+
+site:
+  name: "Demo Conservancy - Sector A"
+  # Where the camera/laptop node is installed. Every alert is stamped with
+  # these coordinates (decimal degrees). Replace with your real position.
+  lat: -17.8292
+  lon: 31.0522
+
+server:
+  host: 0.0.0.0        # 0.0.0.0 = phones/laptops on the same Wi-Fi can open the dashboard
+  port: 8000
+  # Shows "Test alert" buttons on the dashboard. Turn off in the field.
+  allow_simulation: true
+
+storage:
+  db_path: data/events.db
+  snapshot_dir: data/snapshots
+
+vision:
+  enabled: true
+  # 0 = built-in webcam, 1 = first USB webcam. Can also be a video file
+  # path or an RTSP URL (IP camera) - handy for demos with recorded footage.
+  source: 0
+  width: 640
+  height: 480
+  # Pretrained COCO model (detects "person"). After training your own
+  # poacher model, point this at runs/poacher/weights/best.pt.
+  model: models/yolo11n.pt
+  confidence: 0.45
+  # Class names (from the model) counted as a human.
+  person_classes: [person, poacher, ranger, human]
+  # Class names counted as a weapon (only present in a custom-trained model).
+  weapon_classes: [weapon, rifle, gun, firearm, snare, axe, machete]
+  # A person must be seen in at least `confirm_frames` of the last
+  # `window_frames` frames before an alert fires (kills one-frame ghosts).
+  confirm_frames: 3
+  window_frames: 6
+  infer_every_n_frames: 2  # skip frames on slow laptops
+
+audio:
+  enabled: true
+  device: null             # null = default mic; or a device index/name
+  model: models/yamnet.tflite
+  # YAMNet AudioSet classes that count as a gunshot.
+  gunshot_labels: ["Gunshot, gunfire", "Machine gun", "Fusillade", "Artillery fire", "Cap gun"]
+  threshold: 0.35          # 0-1, YAMNet score needed to raise an alert
+  # Optional custom classifier trained with training/train_gunshot.py.
+  # When this file exists it replaces the label-based score above.
+  custom_head: models/gunshot_head.joblib
+
+ble:
+  enabled: true
+  # A detected person is treated as a ranger only if an authorised tag was
+  # heard within this many seconds at or above min_rssi.
+  presence_window_s: 15
+  min_rssi: -90
+  # Authorised ranger tags. A tag matches by Bluetooth address OR by the
+  # advertised name. The firmware in firmware/ranger_tag advertises
+  # "RANGER-<id>".
+  tags:
+    - id: R001
+      ranger: "Ranger T. Moyo"
+      name: "RANGER-R001"
+      address: null        # e.g. "AA:BB:CC:DD:EE:FF" (Windows/Linux)
+    - id: R002
+      ranger: "Ranger C. Ncube"
+      name: "RANGER-R002"
+      address: null
+
+flame:
+  # ESP32 nodes POST to /api/sensors/flame. A node is shown offline after
+  # this many seconds without a heartbeat.
+  offline_after_s: 30
+  nodes:
+    - id: FLAME-01
+      label: "Flame node 1 (river camp)"
+      lat: -17.8301
+      lon: 31.0540
+
+alerts:
+  # Minimum seconds between two alerts of the same type, so one intruder
+  # does not produce a hundred alerts.
+  cooldown_s:
+    poacher: 30
+    suspect: 30
+    ranger: 120
+    gunshot: 10
+    fire: 60
+  # A gunshot within this many seconds of a poacher sighting (or the other
+  # way round) is escalated to "ARMED POACHER".
+  correlate_window_s: 120
+
+notify:
+  # Optional: push alerts (photo + map pin) to a Telegram group the rangers
+  # are in. Create a bot with @BotFather, add it to the group, then fill in.
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
