@@ -8,11 +8,11 @@ python make_enclosures.py        # writes stl/*.stl and report.json (checks ever
 node render_previews.js          # optional, previews/*.png (needs playwright and a copy of three.js)
 ```
 
-| Part | Files in `stl/` | Outer size (mm) |
+| Part | Files in `stl/` | Overall size (mm), including ears and hood |
 |---|---|---|
-| Flame node: base | `flame_node_base.stl` | 63.3 x 63.3 x 24.5 (+ ears, + 9 mm hood) |
+| Flame node: base | `flame_node_base.stl` | 91.3 x 72.3 x 24.5 (box body 63.3 x 63.3) |
 | Flame node: lid | `flame_node_lid_print_orientation.stl` | 67.5 x 67.5 x 12.5 |
-| Ranger tag: base | `ranger_tag_base.stl` | 66.8 x 29 x 17 (+ ears) |
+| Ranger tag: base | `ranger_tag_base.stl` | 86.8 x 29.2 x 16.4 (box body 66.8 x 29.2) |
 | Ranger tag: lid | `ranger_tag_lid_print_orientation.stl` | 71 x 33 x 8.4 |
 
 `*_lid.stl` is the lid as assembled (top up). Print the `*_print_orientation.stl` version, which is flipped so the flat top lies on the bed.
