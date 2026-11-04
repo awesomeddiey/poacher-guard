@@ -57,6 +57,13 @@ ble:
   # A detected person is treated as a ranger only if an authorised tag was
   # heard within this many seconds at or above min_rssi.
   presence_window_s: 15
+  # A tag counts as gone once it has missed this many of its own broadcasts
+  # (the app learns the tag's rate: an iTAG at ~1 s is dropped after ~5 s),
+  # never sooner than min_absent_s and never later than presence_window_s.
+  # Lower = faster ranger -> poacher; too low = a ranger flickers to poacher
+  # when a few broadcasts are missed.
+  absent_after_missed: 5
+  min_absent_s: 3
   min_rssi: -90
   # When a person appears and no tag has been heard yet, wait up to this long
   # for the tag before raising a poacher alert (a tag is heard about once a

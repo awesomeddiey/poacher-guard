@@ -161,3 +161,22 @@ def test_repeated_same_verdict_respects_cooldown(tmp_path):
     assert eng.on_person(None, BOX)["type"] == "poacher"
     clock.t += 5
     assert eng.on_person(None, BOX) is None
+
+
+def test_tag_drops_out_after_a_few_missed_adverts(tmp_path):
+    eng, reg, clock, pub = make(tmp_path)
+    for _ in range(6):                                     # iTAG heard once a second
+        reg.observe(None, "23:11:22:00:4D:20", -60); clock.t += 1.0
+    assert reg.ranger_present()                            # 1 s since the last advert
+    clock.t += 3.0
+    assert reg.ranger_present()                            # 4 s: still inside 5 missed adverts
+    clock.t += 1.5
+    assert not reg.ranger_present()                        # 5.5 s: gone, long before the 15 s ceiling
+
+
+def test_slow_tag_gets_a_longer_timeout(tmp_path):
+    eng, reg, clock, pub = make(tmp_path)
+    for _ in range(6):                                     # a beacon that broadcasts every 2.5 s
+        reg.observe(None, "23:11:22:00:4D:20", -60); clock.t += 2.5
+    clock.t += 8.0
+    assert reg.ranger_present()                            # 10.5 s silent < 5 x 2.5 s

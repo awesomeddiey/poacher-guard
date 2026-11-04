@@ -54,7 +54,9 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
     snap_dir.mkdir(parents=True, exist_ok=True)
     store = EventStore(resolve(cfg["storage"]["db_path"]))
     registry = RangerRegistry(cfg["ble"]["tags"], cfg["ble"].get("presence_window_s", 15),
-                              cfg["ble"].get("min_rssi", -90))
+                              cfg["ble"].get("min_rssi", -90),
+                              absent_after_missed=cfg["ble"].get("absent_after_missed", 5),
+                              min_absent_s=cfg["ble"].get("min_absent_s", 3))
 
     clients: set[WebSocket] = set()
     loop_holder: dict[str, asyncio.AbstractEventLoop] = {}
