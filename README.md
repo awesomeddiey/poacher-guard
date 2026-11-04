@@ -43,7 +43,7 @@ No hardware yet? Use the **Test alerts** buttons on the dashboard, or set `visio
 ## Hardware setup
 
 1. **Webcam** – plug in; `vision.source: 0` (try 1 for a USB cam).
-2. **Ranger tag** – flash `firmware/ranger_tag/ranger_tag.ino` to a spare ESP32, change `TAG_NAME` per ranger, and add the same name under `ble.tags` in `config.yaml`. (Any BLE beacon works if you put its MAC in `address`.) Needs a laptop with Bluetooth 4.0+.
+2. **Ranger tag** – the registered tag is an iTAG beacon (`23:11:22:00:4D:20`, ranger R001), matched by address only. Alternatively flash `firmware/ranger_tag/ranger_tag.ino` to a spare ESP32, change `TAG_NAME` per ranger, and add the same name under `ble.tags` in `config.yaml`. (Any BLE beacon works if you put its MAC in `address`.) Needs a laptop with Bluetooth 4.0+.
 3. **Flame node** – wire the flame sensor (see header of `firmware/flame_node/flame_node.ino`), set Wi-Fi + the laptop's IP, flash. Put its real GPS in `flame.nodes`.
 4. **Site GPS** – set `site.lat/lon` in `config.yaml`. Camera alerts are stamped with this fixed position (a laptop has no GPS).
 

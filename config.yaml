@@ -64,8 +64,10 @@ ble:
   tags:
     - id: R001
       ranger: "Ranger T. Moyo"
-      name: "RANGER-R001"
-      address: null        # e.g. "AA:BB:CC:DD:EE:FF" (Windows/Linux)
+      # iTAG key-finder beacon. Matched by address only: every iTAG advertises
+      # the same name "iTAG", so matching by name would authorise anyone's tag.
+      name: null
+      address: "23:11:22:00:4D:20"
     - id: R002
       ranger: "Ranger C. Ncube"
       name: "RANGER-R002"

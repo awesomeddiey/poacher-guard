@@ -33,7 +33,7 @@ def test_person_without_tag_is_poacher(tmp_path):
 
 def test_person_with_ranger_tag_is_not_an_alarm(tmp_path):
     eng, reg, clock, pub = make(tmp_path)
-    assert reg.observe("RANGER-R001", None, -60)
+    assert reg.observe("iTAG", "23:11:22:00:4D:20", -60)
     ev = eng.on_person(None, BOX)
     assert ev["type"] == "ranger" and ev["severity"] == "info"
     assert "Moyo" in ev["title"]
@@ -99,3 +99,10 @@ def test_flame_alert_uses_node_location_and_offline(tmp_path):
     clock.t += 31
     st = eng.node_status()[0]
     assert st["online"] is False and st["fire"] is False
+
+
+def test_itag_in_config_matches_by_address_only():
+    cfg = load_config(Path(__file__).resolve().parent.parent / "config.yaml")
+    reg = RangerRegistry(cfg["ble"]["tags"])
+    assert reg.match("iTAG", "23:11:22:00:4d:20")["id"] == "R001"
+    assert reg.match("iTAG", "11:22:33:44:55:66") is None     # someone else's iTAG
