@@ -330,6 +330,22 @@ function addEvent(e, live) {
   events.unshift(e);
   if (e.severity === "critical" && !e.acknowledged) unacked.set(e.id, e);
   if (live && e.severity === "critical") beep();
+  if (live && e.type === "gunshot") gunPopup(e);
+}
+
+/* Every gunshot pops up a notification card (top of the screen). It only informs: close it or let it fade after 20 s. */
+function gunPopup(e) {
+  const d = e.detail || {}, el = document.createElement("div");
+  el.className = "gp" + (d.with_poacher ? " armed" : ""); el.setAttribute("role", "alertdialog");
+  el.innerHTML = `<div class="gp-ic">${icon("boom")}</div>
+    <div class="gp-tx"><div class="gp-t">${esc(e.title)}</div>
+      <div class="gp-s">${fmt(e.ts)}${d.score != null ? ` · confidence ${Math.round(d.score * 100)}%` : ""}${d.label ? ` · ${esc(d.label)}` : ""}</div></div>
+    <button class="gp-v">View</button><button class="gp-x" aria-label="Close">${icon("x")}</button>`;
+  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 250); };
+  el.querySelector(".gp-x").onclick = close;
+  el.querySelector(".gp-v").onclick = () => { close(); dlgEvent(e.id); };
+  $("popups").prepend(el);
+  setTimeout(close, 20000);
 }
 
 /* ---------- live link ---------- */

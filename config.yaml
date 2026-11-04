@@ -114,7 +114,7 @@ alerts:
     poacher: 30
     suspect: 30
     ranger: 120
-    gunshot: 10
+    gunshot: 2      # one shot is scored by two overlapping 1 s windows; 2 s keeps one pop-up per shot
     fire: 60
   # A gunshot within this many seconds of a poacher sighting (or the other
   # way round) is escalated to "ARMED POACHER".
