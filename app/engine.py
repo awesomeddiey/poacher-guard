@@ -44,6 +44,10 @@ class AlertEngine:
         self.decision_wait = cfg.get("ble", {}).get("decision_wait_s", 2.0)
         self._sighting_start = -1e9
         self._last_person_call = -1e9
+        # Live verdict for whoever is in view right now (clear / checking / ranger / poacher / armed). It is pushed
+        # to the dashboard the moment it changes, independent of alert cooldowns.
+        self.verdict: dict[str, Any] = {"state": "clear", "ts": clock()}
+        self._last_person_type: str | None = None
         self._last: dict[str, float] = {}
         self._last_poacher_ts = -1e9
         self._last_gunshot_ts = -1e9
@@ -61,6 +65,26 @@ class AlertEngine:
             return True
         self._last[key] = now
         return False
+
+    def _set_verdict(self, state: str, **info) -> None:
+        new = {"state": state, **info}
+        old = {k: v for k, v in self.verdict.items() if k != "ts"}
+        if new != old:
+            self.verdict = {**new, "ts": self.clock()}
+            self.publish({"kind": "verdict", "verdict": self.verdict})
+
+    def _person_cooling(self, kind: str) -> bool:
+        """Repeats of the same verdict obey the cooldown; a change (poacher <-> ranger) is reported at once."""
+        if kind != self._last_person_type:
+            self._last_person_type = kind
+            self._last[kind] = self.clock()
+            return False
+        return self._cooling(kind, kind)
+
+    def on_clear(self) -> None:
+        """The camera no longer sees anyone."""
+        self._last_person_call = -1e9
+        self._set_verdict("clear")
 
     def _emit(self, type_: str, severity: str, title: str, frame=None,
               lat=None, lon=None, detail: dict | None = None) -> dict[str, Any]:
@@ -86,17 +110,20 @@ class AlertEngine:
         rangers = self.registry.ranger_present()
         n = len(boxes)
         if rangers and not weapon:
-            if self._cooling("ranger", "ranger"):
-                return None
             r = rangers[0]
+            self._set_verdict("ranger", people=n, ranger=r["ranger"], tag=r["id"], rssi=r["rssi"])
+            if self._person_cooling("ranger"):
+                return None
             return self._emit("ranger", "info", f"Authorised ranger on camera: {r['ranger']}", frame,
                               detail={"people": n, "tag": r["id"], "rssi": r["rssi"], "latency_s": latency_s})
         # No tag in range (or a weapon is visible, which a tag cannot excuse).
         if not (weapon or decide_now) and now - self._sighting_start < self.decision_wait:
+            self._set_verdict("checking", people=n)
             return None   # still listening for a tag
         armed = weapon or (self.clock() - self._last_gunshot_ts) <= self.correlate_window
+        self._set_verdict("armed" if armed else "poacher", people=n)
         kind = "poacher"
-        if self._cooling(kind, kind):
+        if self._person_cooling(kind):
             return None
         self._last_poacher_ts = self.clock()
         if armed:

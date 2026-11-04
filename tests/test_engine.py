@@ -138,3 +138,26 @@ def test_tag_advert_interval_is_tracked(tmp_path):
     st = {s["id"]: s for s in reg.status()}["R001"]
     assert st["present"] and abs(st["interval_s"] - 1.0) < 0.01
     assert reg.just_arrived("R001") and not reg.just_arrived("R001")
+
+
+def test_verdict_switches_at_once_despite_cooldowns(tmp_path):
+    eng, reg, clock, pub = make(tmp_path, wait=2.0)
+    eng.on_person(None, BOX); assert eng.verdict["state"] == "checking"
+    clock.t += 2.1
+    assert eng.on_person(None, BOX)["type"] == "poacher" and eng.verdict["state"] == "poacher"
+    clock.t += 1.0
+    reg.observe(None, "23:11:22:00:4D:20", -60)           # ranger tag comes into range
+    ev = eng.on_person(None, BOX)
+    assert ev and ev["type"] == "ranger" and eng.verdict["state"] == "ranger"   # not held back by any cooldown
+    for _ in range(16):                                    # tag gone, same person still in view
+        clock.t += 1; eng.on_person(None, BOX)
+    assert eng.verdict["state"] == "poacher"
+    eng.on_clear(); assert eng.verdict["state"] == "clear"
+    assert [m["verdict"]["state"] for m in pub if m.get("kind") == "verdict"] == ["checking", "poacher", "ranger", "poacher", "clear"]
+
+
+def test_repeated_same_verdict_respects_cooldown(tmp_path):
+    eng, reg, clock, pub = make(tmp_path)
+    assert eng.on_person(None, BOX)["type"] == "poacher"
+    clock.t += 5
+    assert eng.on_person(None, BOX) is None

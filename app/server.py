@@ -125,7 +125,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
                   "disk_free_gb": round(disk.free / 1e9, 1), "cpus": os.cpu_count()}
         return {"system": system, "activity_24h": store.activity_24h(time.time()),
                 "site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"),
-                "rangers": registry.status(), "nodes": engine.node_status(),
+                "rangers": registry.status(), "verdict": engine.verdict, "nodes": engine.node_status(),
                 "simulation": bool(cfg["server"].get("allow_simulation", False)),
                 "counts_24h": store.counts_since(time.time() - 86400)}
 

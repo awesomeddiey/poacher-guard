@@ -109,12 +109,20 @@ function renderAll() {
   $("chip-ws").className = "chip"; $("chip-ws").textContent = "Live";
 
   const open = [...unacked.values()], last = open[open.length - 1];
-  const hero = $("hero");
+  const hero = $("hero"), vd = s.verdict || { state: "clear" };
+  const more = open.length ? ` · ${open.length} unacknowledged alert${open.length > 1 ? "s" : ""}` : "";
+  if (vd.state === "ranger" || vd.state === "checking") {
+    // Live verdict for the person in view right now takes over the banner.
+    const r = vd.state === "ranger";
+    hero.className = r ? "ranger" : "checking";
+    hero.innerHTML = `<div class="icon">${icon(r ? "shield" : "users")}</div><div class="txt"><div class="big">${r ? "RANGER ON CAMERA - " + esc(vd.ranger) : "Person in view - checking for a ranger tag..."}</div><div class="small">${r ? `Tag ${esc(vd.tag)} · ${vd.rssi} dBm · not an alarm` : "Deciding ranger or poacher"}${more}</div></div>${open.length ? '<button id="ackall">Acknowledge all</button>' : ""}`;
+  } else {
   hero.className = open.length ? "alert" : "";
   hero.innerHTML = open.length
     ? `<div class="icon">${icon(EV_ICON[last.type] || "alert")}</div><div class="txt"><div class="big">${esc(last.title)}</div><div class="small">${fmt(last.ts)}${open.length > 1 ? ` · +${open.length - 1} more unacknowledged` : ""}</div></div><button id="ackall">Acknowledge all</button>`
     : `<div class="icon">${icon("shield")}</div><div class="txt"><div class="big">All clear</div><div class="small">${act} of ${sn.length} sensors active · no unacknowledged alerts</div></div>`;
-  if (open.length) $("ackall").onclick = () => open.forEach((e) => ack(e.id));
+  }
+  if (open.length && $("ackall")) $("ackall").onclick = () => open.forEach((e) => ack(e.id));
 
   const c = s.counts_24h, total = (c.poacher || 0) + (c.gunshot || 0) + (c.fire || 0);
   const on = s.nodes.filter((n) => n.online).length;
@@ -135,6 +143,7 @@ function renderAll() {
     <div class="stat ${v.people ? "bad" : ""}"><div class="l">People in view</div><div class="v">${v.people || 0}</div></div>
     <div class="stat ${v.weapon ? "bad" : ""}"><div class="l">Weapon</div><div class="v">${v.weapon ? "Detected" : "None"}</div></div>
     <div class="stat ${(s.audio.score || 0) >= 0.35 ? "bad" : ""}"><div class="l">Gunshot score</div><div class="v">${(s.audio.score || 0).toFixed(2)}</div></div>
+    <div class="stat ${vd.state === "poacher" || vd.state === "armed" ? "bad" : ""}"><div class="l">Verdict now</div><div class="v">${{ clear: "Clear", checking: "Checking...", ranger: "Ranger", poacher: "Poacher", armed: "Armed" }[vd.state] || "-"}</div></div>
     <div class="stat"><div class="l">Ranger tag</div><div class="v">${ranger ? esc(ranger.ranger.split(" ").pop()) : "None"}</div></div>`;
 
   $("sensors-sub").textContent = `${act} / ${sn.length} online`;
@@ -335,6 +344,7 @@ function connect() {
     else if (d.kind === "status") { status = d.status; renderAll(); }
     else if (d.kind === "nodes" && status) { status.nodes = d.nodes; renderAll(); }
     else if (d.kind === "rangers" && status) { status.rangers = d.rangers; renderAll(); }
+    else if (d.kind === "verdict" && status) { status.verdict = d.verdict; renderAll(); }
     else if (d.kind === "event") { addEvent(d.event, true); renderFeed(); if (status) { status.counts_24h[d.event.type] = (status.counts_24h[d.event.type] || 0) + 1; renderAll(); } }
   };
 }

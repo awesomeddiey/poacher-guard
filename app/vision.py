@@ -103,7 +103,9 @@ class VisionWorker(threading.Thread):
                 boxes, weapon = self._detect(model, frame, conf)
                 self._hist.append(bool(boxes))
                 if boxes and first_seen is None: first_seen = t_read
-                if not any(self._hist): first_seen = None
+                if not any(self._hist):
+                    first_seen = None
+                    self.engine.on_clear()
                 self.status["people"] = sum(1 for b in boxes if b["label"] in self.person_classes)
                 self.status["detections"] = [{"label": b["label"], "conf": b["conf"]} for b in boxes][:12]
                 self.status["weapon"] = weapon
