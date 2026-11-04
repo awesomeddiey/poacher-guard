@@ -14,8 +14,9 @@ class Clock:
     def __call__(self): return self.t
 
 
-def make(tmp_path):
+def make(tmp_path, wait=0.0):
     cfg = load_config()
+    cfg["ble"]["decision_wait_s"] = wait
     clock = Clock()
     reg = RangerRegistry(cfg["ble"]["tags"], presence_window_s=15, min_rssi=-90, clock=clock)
     published = []
@@ -106,3 +107,34 @@ def test_itag_in_config_matches_by_address_only():
     reg = RangerRegistry(cfg["ble"]["tags"])
     assert reg.match("iTAG", "23:11:22:00:4d:20")["id"] == "R001"
     assert reg.match("iTAG", "11:22:33:44:55:66") is None     # someone else's iTAG
+
+
+def test_poacher_verdict_waits_for_tag_then_fires(tmp_path):
+    eng, reg, clock, pub = make(tmp_path, wait=2.0)
+    assert eng.on_person(None, BOX) is None          # just appeared, still listening
+    clock.t += 1.0
+    assert eng.on_person(None, BOX) is None
+    clock.t += 1.1
+    assert eng.on_person(None, BOX)["type"] == "poacher"
+
+
+def test_ranger_identified_as_soon_as_tag_heard(tmp_path):
+    eng, reg, clock, pub = make(tmp_path, wait=2.0)
+    assert eng.on_person(None, BOX) is None
+    clock.t += 0.6
+    reg.observe("iTAG", "23:11:22:00:4D:20", -70)     # first advert arrives mid-wait
+    assert eng.on_person(None, BOX)["type"] == "ranger"
+
+
+def test_weapon_skips_the_wait(tmp_path):
+    eng, reg, clock, pub = make(tmp_path, wait=2.0)
+    assert eng.on_person(None, BOX, weapon=True)["type"] == "poacher"
+
+
+def test_tag_advert_interval_is_tracked(tmp_path):
+    eng, reg, clock, pub = make(tmp_path)
+    for _ in range(5):
+        reg.observe(None, "23:11:22:00:4D:20", -60); clock.t += 1.0
+    st = {s["id"]: s for s in reg.status()}["R001"]
+    assert st["present"] and abs(st["interval_s"] - 1.0) < 0.01
+    assert reg.just_arrived("R001") and not reg.just_arrived("R001")

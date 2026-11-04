@@ -38,6 +38,12 @@ class AlertEngine:
         self.cooldown = {"poacher": 30, "suspect": 30, "ranger": 120, "gunshot": 10, "fire": 60,
                          **cfg["alerts"].get("cooldown_s", {})}
         self.correlate_window = cfg["alerts"].get("correlate_window_s", 120)
+        # A tag advertises about once a second, so a ranger who has just walked into view may not have been
+        # heard yet. Hold the poacher verdict this long (from the first confirmed frame of a sighting) and
+        # call it "ranger" the moment the tag is heard. A visible weapon skips the wait.
+        self.decision_wait = cfg.get("ble", {}).get("decision_wait_s", 2.0)
+        self._sighting_start = -1e9
+        self._last_person_call = -1e9
         self._last: dict[str, float] = {}
         self._last_poacher_ts = -1e9
         self._last_gunshot_ts = -1e9
@@ -71,8 +77,12 @@ class AlertEngine:
 
     # ---- camera --------------------------------------------------------
     def on_person(self, frame, boxes: list[dict[str, Any]], weapon: bool = False,
-                  latency_s: float | None = None) -> dict[str, Any] | None:
+                  latency_s: float | None = None, decide_now: bool = False) -> dict[str, Any] | None:
         """A human was confirmed in view. `boxes` = [{label, conf, xyxy}, ...]."""
+        now = self.clock()
+        if now - self._last_person_call > 3.0:   # gap in sightings: a new person has come into view
+            self._sighting_start = now
+        self._last_person_call = now
         rangers = self.registry.ranger_present()
         n = len(boxes)
         if rangers and not weapon:
@@ -82,6 +92,8 @@ class AlertEngine:
             return self._emit("ranger", "info", f"Authorised ranger on camera: {r['ranger']}", frame,
                               detail={"people": n, "tag": r["id"], "rssi": r["rssi"], "latency_s": latency_s})
         # No tag in range (or a weapon is visible, which a tag cannot excuse).
+        if not (weapon or decide_now) and now - self._sighting_start < self.decision_wait:
+            return None   # still listening for a tag
         armed = weapon or (self.clock() - self._last_gunshot_ts) <= self.correlate_window
         kind = "poacher"
         if self._cooling(kind, kind):

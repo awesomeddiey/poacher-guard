@@ -36,9 +36,25 @@ class RangerRegistry:
         tag = self.match(name, address)
         if not tag or rssi < self.min_rssi:
             return False
+        now = self._clock()
         with self._lock:
-            self._seen[tag["id"]] = {"tag": tag, "rssi": rssi, "ts": self._clock()}
+            prev = self._seen.get(tag["id"])
+            new = prev is None or now - prev["ts"] > self.window
+            gap = None if new else now - prev["ts"]
+            iv = prev.get("interval_s") if prev and not new else None
+            iv = gap if iv is None else (iv if gap is None else 0.8 * iv + 0.2 * gap)   # smoothed gap between adverts
+            self._seen[tag["id"]] = {"tag": tag, "rssi": rssi, "ts": now, "interval_s": iv,
+                                     "arrived": new or bool(prev and prev.get("arrived"))}
         return True
+
+    def just_arrived(self, tag_id: str) -> bool:
+        """True once, for the first advert of a tag that was absent: lets the scanner push it out at once."""
+        with self._lock:
+            s = self._seen.get(tag_id)
+            if s and s.get("arrived"):
+                s["arrived"] = False
+                return True
+        return False
 
     def ranger_present(self) -> list[dict[str, Any]]:
         """Authorised tags heard within the presence window (strongest first)."""
@@ -61,5 +77,6 @@ class RangerRegistry:
                     "present": bool(s and now - s["ts"] <= self.window),
                     "rssi": s["rssi"] if s else None,
                     "age_s": round(now - s["ts"], 1) if s else None,
+                    "interval_s": round(s["interval_s"], 2) if s and s.get("interval_s") else None,
                 })
         return out

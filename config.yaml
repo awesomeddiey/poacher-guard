@@ -58,6 +58,10 @@ ble:
   # heard within this many seconds at or above min_rssi.
   presence_window_s: 15
   min_rssi: -90
+  # When a person appears and no tag has been heard yet, wait up to this long
+  # for the tag before raising a poacher alert (a tag is heard about once a
+  # second). The ranger verdict is given the moment the tag is heard.
+  decision_wait_s: 2.0
   # Authorised ranger tags. A tag matches by Bluetooth address OR by the
   # advertised name. The firmware in firmware/ranger_tag advertises
   # "RANGER-<id>".

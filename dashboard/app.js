@@ -253,7 +253,7 @@ function dlgSensor(key) {
          <div class="ax"><span>0</span><span>alert at 0.35</span><span>1</span></div>
          <div class="h3">Input level</div><div class="bar" style="height:16px"><i style="width:${Math.round(Math.min(1, (a.level || 0) * 4) * 100)}%"></i></div>${a.error ? `<p class="empty">${esc(a.error)}</p>` : ""}`
       : `<div class="chipset"><span class="badge ${s.ble.running ? "" : "off"}">${s.ble.running ? "Scanning" : "Off"}</span></div>
-         ${s.rangers.map((r) => `<div class="row"><span>${esc(r.ranger)} (${esc(r.id)})</span><b>${r.present ? "In range · " + r.rssi + " dBm" : r.age_s != null ? "last seen " + ago(r.age_s) : "never seen"}</b></div>`).join("")}${s.ble.error ? `<p class="empty">${esc(s.ble.error)}</p>` : ""}`;
+         ${s.rangers.map((r) => `<div class="row"><span>${esc(r.ranger)} (${esc(r.id)})</span><b>${r.present ? "In range · " + r.rssi + " dBm" + (r.interval_s ? " · heard every " + r.interval_s + " s" : "") : r.age_s != null ? "last seen " + ago(r.age_s) : "never seen"}</b></div>`).join("")}${s.ble.error ? `<p class="empty">${esc(s.ble.error)}</p>` : ""}`;
   }, lastClick);
 }
 
@@ -334,6 +334,7 @@ function connect() {
     if (d.kind === "hello") { status = d.status; events = []; unacked.clear(); d.events.slice().reverse().forEach((e) => addEvent(e, false)); renderAll(); renderFeed(); }
     else if (d.kind === "status") { status = d.status; renderAll(); }
     else if (d.kind === "nodes" && status) { status.nodes = d.nodes; renderAll(); }
+    else if (d.kind === "rangers" && status) { status.rangers = d.rangers; renderAll(); }
     else if (d.kind === "event") { addEvent(d.event, true); renderFeed(); if (status) { status.counts_24h[d.event.type] = (status.counts_24h[d.event.type] || 0) + 1; renderAll(); } }
   };
 }

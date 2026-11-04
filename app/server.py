@@ -100,7 +100,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
                 workers["audio"] = AudioWorker(cfg, engine)
             if cfg["ble"].get("enabled", True):
                 from .ble_scanner import BleWorker
-                workers["ble"] = BleWorker(registry)
+                workers["ble"] = BleWorker(registry, publish)
             for w in workers.values():
                 w.start()
         yield
@@ -167,7 +167,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             raise HTTPException(403, "simulation disabled")
         fake = [{"label": "person", "conf": 0.9, "xyxy": [0, 0, 1, 1]}]
         if kind == "poacher":
-            ev = engine.on_person(None, fake)
+            ev = engine.on_person(None, fake, decide_now=True)
         elif kind == "ranger":
             first = cfg["ble"]["tags"][0]
             registry.observe(first.get("name"), first.get("address"), -55)
