@@ -12,7 +12,9 @@ Two scoring modes:
 
 from __future__ import annotations
 
+import json
 import logging
+import math
 import threading
 import time
 import zipfile
@@ -71,19 +73,61 @@ class GunshotScorer:
         self.idx = [i for i, l in enumerate(self.yam.labels) if l in wanted]
         if not self.idx:
             raise RuntimeError("none of audio.gunshot_labels exist in the YAMNet label list")
-        self.head = None
-        hp = resolve(a.get("custom_head"))
+        self.head = None          # sklearn head (joblib) or the Chapter 3 logistic head exported as JSON
+        hp = resolve(a.get("custom_head")) if a.get("use_custom_head") else None
         if hp and hp.exists():
-            import joblib
-            self.head = joblib.load(hp)
-            log.info("using custom gunshot head %s", hp)
+            if hp.suffix == ".json":
+                h = json.loads(hp.read_text())
+                self.head = ("json", np.asarray(h["coef"], np.float32), float(h["intercept"]))
+            else:
+                import joblib
+                self.head = ("sk", joblib.load(hp))
+            log.info("using trained gunshot head %s", hp)
+
+    def head_score(self, scores: np.ndarray) -> float:
+        if self.head[0] == "json":
+            return 1 / (1 + math.exp(-(float(scores @ self.head[1]) + self.head[2])))
+        return float(self.head[1].predict_proba(scores[None])[0][1])
 
     def score(self, wav: np.ndarray) -> tuple[float, str]:
         scores, _ = self.yam.run(wav)
         if self.head is not None:
-            return float(self.head.predict_proba(scores[None])[0][1]), "custom"
+            return self.head_score(scores), "trained head"
         i = max(self.idx, key=lambda k: scores[k])
         return float(scores[i]), self.yam.labels[i]
+
+    def explain(self, wav: np.ndarray, k: int = 3) -> list[tuple[str, float]]:
+        """Top YAMNet classes for a window, for the microphone test."""
+        scores, _ = self.yam.run(wav)
+        top = np.argsort(scores)[::-1][:k]
+        return [(self.yam.labels[i], float(scores[i])) for i in top]
+
+
+SKIP_MICS = ("hands-free", "headset", "bluetooth", "sound mapper", "primary sound capture", "stereo mix", "what u hear")
+PREFER_MICS = ("c-media", "usb", "webcam", "camera")
+
+
+def pick_microphone(want=None):
+    """Choose the input device. `want` = None/"auto": the USB microphone on the node (often the webcam's C-Media mic),
+    skipping Bluetooth headsets and Windows' virtual mappers; otherwise a device index or part of its name.
+    On Windows the MME copy of a device is preferred because it accepts 16 kHz directly. Returns (index or None, name)."""
+    import sounddevice as sd
+    devs, apis = sd.query_devices(), sd.query_hostapis()
+    mics = [(i, d) for i, d in enumerate(devs) if d["max_input_channels"] > 0]
+    rank_api = lambda d: 0 if apis[d["hostapi"]]["name"] == "MME" else 1
+    if isinstance(want, int):
+        return want, devs[want]["name"]
+    if isinstance(want, str) and want.lower() != "auto":
+        hits = [(i, d) for i, d in mics if want.lower() in d["name"].lower()]
+        if hits:
+            i, d = min(hits, key=lambda x: rank_api(x[1])); return i, d["name"]
+        log.warning("microphone %r not found, using the automatic choice", want)
+    usable = [(i, d) for i, d in mics if not any(s in d["name"].lower() for s in SKIP_MICS)]
+    pref = [(i, d) for i, d in usable if any(p in d["name"].lower() for p in PREFER_MICS)]
+    for group in (pref, usable):
+        if group:
+            i, d = min(group, key=lambda x: rank_api(x[1])); return i, d["name"]
+    return None, "system default"
 
 
 class AudioWorker(threading.Thread):
@@ -95,7 +139,7 @@ class AudioWorker(threading.Thread):
         self.engine = engine
         self.cfg_all = cfg
         self._stop = threading.Event()
-        self.status = {"running": False, "level": 0.0, "score": 0.0, "error": None}
+        self.status = {"running": False, "level": 0.0, "score": 0.0, "error": None, "device": None, "peak": 0.0}
 
     def stop(self):
         self._stop.set()
@@ -108,20 +152,36 @@ class AudioWorker(threading.Thread):
             self.status["error"] = f"audio init failed: {e}"
             log.exception("audio init failed")
             return
-        threshold = self.cfg.get("threshold", 0.35)
+        threshold = self.cfg.get("head_threshold", 0.99) if scorer.head else self.cfg.get("threshold", 0.35)
+        dev, dev_name = pick_microphone(self.cfg.get("device"))
         ring = np.zeros(SR * 2, dtype=np.float32)
         lock = threading.Lock()
+
+        rate = SR
 
         def cb(indata, frames, t, status):  # runs on the audio thread
             nonlocal ring
             x = indata[:, 0].astype(np.float32)
+            if rate != SR:   # device would not open at 16 kHz: resample its native rate
+                from scipy.signal import resample_poly
+                g = math.gcd(SR, int(rate)); x = resample_poly(x, SR // g, int(rate) // g).astype(np.float32)
             with lock:
                 ring = np.concatenate([ring, x])[-SR * 2:]
 
+        def open_stream():
+            nonlocal rate
+            try:
+                return sd.InputStream(samplerate=SR, channels=1, dtype="float32", device=dev, callback=cb, blocksize=1600)
+            except Exception:  # noqa: BLE001
+                rate = int(sd.query_devices(dev, "input")["default_samplerate"])
+                log.info("microphone does not take 16 kHz, recording at %d Hz and resampling", rate)
+                return sd.InputStream(samplerate=rate, channels=1, dtype="float32", device=dev, callback=cb,
+                                      blocksize=int(rate // 10))
+
         try:
-            with sd.InputStream(samplerate=SR, channels=1, dtype="float32",
-                                device=self.cfg.get("device"), callback=cb, blocksize=1600):
-                self.status.update(running=True, error=None)
+            with open_stream():
+                log.info("microphone: %s", dev_name)
+                self.status.update(running=True, error=None, device=dev_name)
                 while not self._stop.is_set():
                     time.sleep(self.HOP)
                     with lock:
@@ -129,6 +189,7 @@ class AudioWorker(threading.Thread):
                     self.status["level"] = float(np.sqrt(np.mean(win ** 2)))
                     score, label = scorer.score(win)
                     self.status["score"] = round(score, 3)
+                    self.status["peak"] = round(max(score, self.status["peak"] * 0.9), 3)   # decays, so a short spike stays visible
                     if score >= threshold:
                         try:
                             self.engine.on_gunshot(score, label)

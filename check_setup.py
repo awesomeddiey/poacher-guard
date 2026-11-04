@@ -1,10 +1,13 @@
-"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble]
+"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble] [--mic [name]]
 
   * Python packages and model files
   * cameras (index, size) and a saved test picture per camera in data/camera_N.jpg
   * microphones
   * Bluetooth: with --ble it scans for 8 s and lists nearby devices with their address, name and signal, so you can copy the
     address of your ranger beacon into config.yaml (ble.tags[].address)
+  * Microphone: with --mic it lists every input device, then listens for 15 s on the one the app would use (or the one
+    named after --mic) and prints the sound level, the gunshot score and what the model thinks it hears. Play a
+    gunshot recording near the microphone while it runs.
 """
 import os
 os.environ.setdefault("OPENCV_LOG_LEVEL", "SILENT")   # hide OpenCV probe warnings
@@ -59,6 +62,63 @@ async def scan():
     async with BleakScanner(cb): await asyncio.sleep(8)
     return seen
 
+def mic_test():
+    import time
+    import numpy as np
+    import sounddevice as sd
+    sys.path.insert(0, str(ROOT))
+    from app.audio import SR, WIN, GunshotScorer, pick_microphone
+    from app.config import load_config
+    cfg = load_config()
+    apis = sd.query_hostapis()
+    print("\nInput devices (index, driver, name):")
+    for i, d in enumerate(sd.query_devices()):
+        if d["max_input_channels"] > 0:
+            print(f"   {i:>3}  {apis[d['hostapi']]['name'][:12]:<12} {d['name']}{'   <- Windows default' if i == sd.default.device[0] else ''}")
+    k = sys.argv.index("--mic")
+    want = sys.argv[k + 1] if len(sys.argv) > k + 1 else cfg["audio"].get("device")
+    want = int(want) if isinstance(want, str) and want.isdigit() else want
+    dev, name = pick_microphone(want)
+    print(f"\nListening on: [{dev}] {name}")
+    a = dict(cfg["audio"]); a["use_custom_head"] = False
+    zero = GunshotScorer({**cfg, "audio": a})
+    a2 = dict(cfg["audio"]); a2["use_custom_head"] = True
+    try: head = GunshotScorer({**cfg, "audio": a2}); head = head if head.head else None
+    except Exception: head = None
+    rate = SR
+    try: sd.check_input_settings(device=dev, samplerate=SR, channels=1)
+    except Exception: rate = int(sd.query_devices(dev, "input")["default_samplerate"])
+    print(f"Recording at {rate} Hz. PLAY A GUNSHOT SOUND NEAR THE MICROPHONE NOW (15 s)...\n")
+    print("  time  level              gunshot  trained   what the model hears")
+    buf = sd.rec(int(15 * rate), samplerate=rate, channels=1, dtype="float32", device=dev); best = (0, 0, None)
+    t0 = time.time()
+    for step in range(1, 30):
+        while time.time() - t0 < step * 0.5 + 0.05: time.sleep(0.02)
+        end = int(step * 0.5 * rate); seg = buf[max(0, end - int(rate * WIN / SR)):end, 0]
+        if rate != SR:
+            from scipy.signal import resample_poly
+            from math import gcd
+            g = gcd(SR, rate); seg = resample_poly(seg, SR // g, rate // g).astype(np.float32)
+        lvl = float(np.sqrt(np.mean(seg ** 2))) if len(seg) else 0.0
+        z, _ = zero.score(seg); h = head.score(seg)[0] if head else None
+        top = ", ".join(f"{l} {p:.2f}" for l, p in zero.explain(seg))
+        flag = "  <== GUNSHOT" if z >= cfg["audio"].get("threshold", 0.35) else ""
+        print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}   {top}{flag}")
+        if z > best[0]: best = (z, step * 0.5, top)
+    sd.wait()
+    thr = cfg["audio"].get("threshold", 0.35)
+    if best[0] >= thr: say(OK, f"gunshot heard (score {best[0]:.2f} at {best[1]} s, threshold {thr})")
+    else:
+        say(WARN, f"no gunshot above the threshold {thr} (best {best[0]:.2f}).")
+        print("       If the level bars stayed empty, this is the wrong microphone: run  python check_setup.py --mic <index>  with")
+        print("       another index from the list, then put that name in config.yaml -> audio.device.")
+        print("       If the level moved but the score stayed low, play the sound louder and closer, from a speaker rather than a phone.")
+
+
+if "--mic" in sys.argv:
+    try: mic_test()
+    except Exception as e: say(BAD, f"microphone test failed: {e}")
+
 if "--ble" in sys.argv:
     print("\nScanning for Bluetooth devices for 8 seconds (hold your beacon close to the PC)...")
     try:
@@ -68,5 +128,6 @@ if "--ble" in sys.argv:
         if platform.system() == "Darwin": say(WARN, "macOS hides real Bluetooth addresses (you see long IDs, not MACs). Match by name instead, or ask for iBeacon matching")
     except Exception as e: say(BAD, f"bluetooth scan failed: {e}. Turn Bluetooth on in Windows settings")
 else:
-    print("\n(Run  python check_setup.py --ble  to scan for your ranger beacon's address)")
+    print("\n(Run  python check_setup.py --ble  to scan for your ranger beacon's address,")
+    print(" or  python check_setup.py --mic  to test gunshot detection on the microphone)")
 print("\n" + ("All checks passed." if not problems else f"{problems} problem(s) found. Fix the [FAIL] lines above, then run again."))

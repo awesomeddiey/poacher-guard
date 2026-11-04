@@ -85,7 +85,7 @@ function sensors() {
   out.push({ key: "camera", ic: "camera", name: "Webcam", on: s.vision.running, bad: false,
     sub: s.vision.running ? `${s.vision.fps} fps · ${s.vision.people} person(s) in view` : s.vision.error || "off" });
   out.push({ key: "mic", ic: "mic", name: "Microphone · gunshot AI", on: s.audio.running, bad: (s.audio.score || 0) >= 0.35,
-    sub: s.audio.running ? `score ${(s.audio.score || 0).toFixed(2)}` : s.audio.error || "off" });
+    sub: s.audio.running ? `${esc((s.audio.device || "mic").slice(0, 28))} · score ${(s.audio.score || 0).toFixed(2)}` : s.audio.error || "off" });
   out.push({ key: "ble", ic: "ble", name: "BLE ranger-tag scanner", on: s.ble.running, bad: false,
     sub: s.ble.running ? `${s.rangers.filter((r) => r.present).length} of ${s.rangers.length} tags in range` : s.ble.error || "off" });
   s.nodes.forEach((n) => out.push({ key: "node:" + n.id, ic: KIND_ICON[n.kind] || "node", name: n.label, on: n.online, bad: n.fire,
@@ -155,7 +155,9 @@ function renderAll() {
     <div class="row"><span>Uptime</span><b>${dur(sy.uptime_s)}</b></div>
     <div class="row"><span>CPU load (1 min)</span><b>${sy.load1 ?? "n/a"}${sy.load1 != null ? ` / ${sy.cpus} cores` : ""}</b></div>
     <div class="row"><span>Disk free</span><b>${sy.disk_free_gb} GB</b></div>
+    <div class="row"><span>Microphone</span><b>${esc(s.audio.device || (s.audio.running ? "default" : "off"))}</b></div>
     <div class="row"><span>Mic level</span><b>${Math.round(Math.min(1, (s.audio.level || 0) * 4) * 100)}%</b></div>
+    <div class="row"><span>Gunshot score (recent peak)</span><b>${(s.audio.peak || 0).toFixed(2)}</b></div>
     <div class="h3">Field nodes</div>` + (cam.map((n) => { const t = n.telemetry || {};
       return `<div class="nt" data-n="${esc(n.id)}"><span>${esc(n.label.split(" - ")[0])}</span>${n.online && t.battery != null ? bat(t.battery) : '<span class="badge off">offline</span>'}<b>${n.online && t.battery != null ? Math.round(t.battery) + "%" : ""}</b></div>`; }).join("") || '<div class="empty">No field nodes configured</div>');
 

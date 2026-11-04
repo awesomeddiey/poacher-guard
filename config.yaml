@@ -43,14 +43,19 @@ vision:
 
 audio:
   enabled: true
-  device: null             # null = default mic; or a device index/name
+  # auto = the USB microphone on the node (the webcam's C-Media mic), skipping
+  # Bluetooth headsets. Or part of a device name, e.g. "C-Media", or an index.
+  # See the choices with:  python check_setup.py --mic
+  device: auto
   model: models/yamnet.tflite
-  # YAMNet AudioSet classes that count as a gunshot.
   gunshot_labels: ["Gunshot, gunfire", "Machine gun", "Fusillade", "Artillery fire", "Cap gun"]
-  threshold: 0.35          # 0-1, YAMNet score needed to raise an alert
-  # Optional custom classifier trained with training/train_gunshot.py.
-  # When this file exists it replaces the label-based score above.
-  custom_head: models/gunshot_head.joblib
+  threshold: 0.35          # 0-1, YAMNet gunshot score needed to raise an alert
+  # The classifier trained in Chapter 3 on top of YAMNet (fewer false alarms
+  # on test data). Off by default until it is checked on the real microphone
+  # with  python check_setup.py --mic
+  use_custom_head: false
+  custom_head: models/gunshot_head.json
+  head_threshold: 0.99
 
 ble:
   enabled: true
