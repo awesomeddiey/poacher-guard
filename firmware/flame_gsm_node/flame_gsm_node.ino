@@ -7,10 +7,11 @@
 //      GUNSHOT, the laptop answers with a ready-made text message and this node sends it by SMS.
 //
 // Wiring (ESP32 38-pin DevKit)
-//   Flame sensor module (LM393, 3 or 4 pins)
+//   Flame sensor module (LM393, 3 or 4 pins): only ONE signal wire is used.
 //     VCC -> 3V3      GND -> GND
-//     AO  -> GPIO34   (analog; leave unconnected on a 3-pin module and set USE_ANALOG = false)
-//     DO  -> GPIO27   (digital; LOW = flame)
+//     AO or DO -> GPIO34. Either works: the pin is read as analog (0-4095). AO gives the flame strength;
+//     DO is LOW (about 0) on flame and HIGH (about 4095) otherwise. Both mean "fire" below FIRE_BELOW.
+//     GPIO34 is input-only, which is fine for a sensor.
 //     Do NOT use the pins marked D0, D1, D2, D3, CMD or CLK (GPIO 6-11): they belong to the flash chip and
 //     using them crashes the board.
 //   GSM module (SIM800L 2G, or SIM7600 / A7670 4G - same text-message commands)
@@ -39,10 +40,8 @@ const char* SMS_TYPES = "poacher,gunshot";              // laptop alerts that ar
 const unsigned long SMS_GAP_MS = 120000;                // at most one text per alert type every 2 minutes
 const bool  TEXT_ON_BOOT = true;                        // send "node online" once, to prove the GSM works
 
-const int  PIN_FLAME_AO = 34;
-const int  PIN_FLAME_DO = 27;
-const bool USE_ANALOG   = true;
-const int  FIRE_BELOW   = 1500;     // 0-4095: lower analog value = more flame light. Tune in Serial Monitor.
+const int  PIN_FLAME    = 34;
+const int  FIRE_BELOW   = 1500;     // 0-4095: below this = flame. Watch "[FLAME] raw=" in Serial Monitor and tune.
 const int  CONFIRM_READS = 3;       // consecutive hot reads (250 ms apart) before it counts as fire
 
 const int GSM_RX = 16, GSM_TX = 17;
@@ -162,7 +161,7 @@ void pollAlerts() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_FLAME_DO, INPUT_PULLUP);           // pull-up: an unplugged DO wire reads "no flame", not random
+  pinMode(PIN_FLAME, INPUT);
   analogReadResolution(12);
   gsm.begin(GSM_BAUD, SERIAL_8N1, GSM_RX, GSM_TX);
   delay(3000);                                  // let the GSM module start
@@ -176,9 +175,10 @@ void loop() {
   unsigned long now = millis();
 
   // flame sensor
-  int raw = USE_ANALOG ? analogRead(PIN_FLAME_AO) : 4095;
-  bool dig = digitalRead(PIN_FLAME_DO) == LOW;
-  hot = ((USE_ANALOG && raw < FIRE_BELOW) || dig) ? hot + 1 : 0;
+  int raw = analogRead(PIN_FLAME);
+  hot = raw < FIRE_BELOW ? hot + 1 : 0;
+  static unsigned long lastPrint = 0;
+  if (now - lastPrint >= 1000) { lastPrint = now; Serial.printf("[FLAME] raw=%d %s\n", raw, raw < FIRE_BELOW ? "(hot)" : ""); }
   bool fire = hot >= CONFIRM_READS;
   if (fire != lastFire) {
     Serial.printf("[FLAME] %s (raw=%d)\n", fire ? "FIRE" : "clear", raw);

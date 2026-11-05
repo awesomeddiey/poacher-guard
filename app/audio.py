@@ -89,12 +89,24 @@ class GunshotScorer:
             return 1 / (1 + math.exp(-(float(scores @ self.head[1]) + self.head[2])))
         return float(self.head[1].predict_proba(scores[None])[0][1])
 
+    VOICE = ("Speech", "Male speech, man speaking", "Female speech, woman speaking", "Child speech, kid speaking",
+             "Conversation", "Narration, monologue", "Babbling", "Shout", "Yell", "Children shouting", "Screaming",
+             "Laughter", "Singing", "Whispering", "Cough", "Sneeze", "Throat clearing")
+
     def score(self, wav: np.ndarray) -> tuple[float, str]:
+        g, label, _ = self.score_all(wav)
+        return g, label
+
+    def score_all(self, wav: np.ndarray) -> tuple[float, str, float]:
+        """Gunshot score and label, plus how strongly the window sounds like a human voice (used to veto loud bangs)."""
         scores, _ = self.yam.run(wav)
+        if not hasattr(self, "_voice_idx"):
+            self._voice_idx = [i for i, l in enumerate(self.yam.labels) if l in self.VOICE]
+        voice = float(max(scores[i] for i in self._voice_idx)) if self._voice_idx else 0.0
         if self.head is not None:
-            return self.head_score(scores), "trained head"
+            return self.head_score(scores), "trained head", voice
         i = max(self.idx, key=lambda k: scores[k])
-        return float(scores[i]), self.yam.labels[i]
+        return float(scores[i]), self.yam.labels[i], voice
 
     def explain(self, wav: np.ndarray, k: int = 3) -> list[tuple[str, float]]:
         """Top YAMNet classes for a window, for the microphone test."""
@@ -195,6 +207,8 @@ class AudioWorker(threading.Thread):
         b = self.cfg.get("bang", {})
         bang = BangDetector(b.get("min_db", -15), b.get("rise_db", 20), b.get("jump_db", 12)) if mode in ("loudness", "either") else None
         bangs: list[dict[str, float]] = []
+        voice_veto = b.get("voice_veto", 0.3)
+        recent_voice: list[float] = []      # voice score of the last few windows (about 1 s of context)
         dev, dev_name = pick_microphone(self.cfg.get("device"))
         ring = np.zeros(SR * 2, dtype=np.float32)
         lock = threading.Lock()
@@ -231,15 +245,21 @@ class AudioWorker(threading.Thread):
                     with lock:
                         win = ring[-WIN:].copy()
                         found, bangs[:] = list(bangs), []
+                    self.status["level"] = float(np.sqrt(np.mean(win ** 2)))
+                    score, label, voice_now = scorer.score_all(win)
+                    recent_voice = (recent_voice + [voice_now])[-max(1, int(round(1.0 / self.HOP)) + 1):]
+                    voice = max(recent_voice)       # a voice in the bang's window or the second before it
                     if found:
                         top = max(found, key=lambda d: d["rise"])
-                        self.status["last_bang"] = {k: round(v, 1) for k, v in top.items()}
-                        try:
-                            self.engine.on_gunshot(min(1.0, top["rise"] / 40), f"Loud bang (+{top['rise']:.0f} dB)")
-                        except Exception:  # noqa: BLE001
-                            log.exception("engine.on_gunshot failed")
-                    self.status["level"] = float(np.sqrt(np.mean(win ** 2)))
-                    score, label = scorer.score(win)
+                        self.status["last_bang"] = {**{k: round(v, 1) for k, v in top.items()}, "voice": round(voice, 2)}
+                        if voice >= voice_veto:     # loud, but the model hears a voice: talking or shouting, not a shot
+                            self.status["bangs_ignored"] = self.status.get("bangs_ignored", 0) + 1
+                            log.info("loud bang ignored: sounds like a voice (%.2f)", voice)
+                        else:
+                            try:
+                                self.engine.on_gunshot(min(1.0, top["rise"] / 40), f"Loud bang (+{top['rise']:.0f} dB)")
+                            except Exception:  # noqa: BLE001
+                                log.exception("engine.on_gunshot failed")
                     self.status["score"] = round(score, 3)
                     self.status["peak"] = round(max(score, self.status["peak"] * 0.9), 3)   # decays, so a short spike stays visible
                     if mode != "loudness" and score >= threshold:

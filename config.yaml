@@ -67,6 +67,8 @@ audio:
     rise_db: 15     # how much louder than the room just before
     jump_db: 0      # how fast it must get loud (dB within 20 ms); 0 = off. Shots played
                     # through a speaker built up too slowly for the 12 dB rule.
+    voice_veto: 0.3 # ignore a bang when the model hears a voice at least this strongly
+                    # (talking scored 0.26-0.98 on the node mic; played shots 0.20 or less)
 
 ble:
   enabled: true

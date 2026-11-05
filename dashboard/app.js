@@ -335,19 +335,30 @@ function addEvent(e, live) {
   if (live && e.type === "gunshot") gunPopup(e);
 }
 
-/* Every gunshot pops up a notification card (top of the screen). It only informs: close it or let it fade after 20 s. */
+/* Gunshot toast: ONE card in the bottom-right corner. A new gunshot while it is showing updates the same card
+   (latest details + "N gunshots") and restarts its 20 s timer, instead of stacking another card. */
+let gunToast = null;
 function gunPopup(e) {
-  const d = e.detail || {}, el = document.createElement("div");
-  el.className = "gp" + (d.with_poacher ? " armed" : ""); el.setAttribute("role", "alertdialog");
-  el.innerHTML = `<div class="gp-ic">${icon("boom")}</div>
+  const d = e.detail || {};
+  if (!gunToast) {
+    const el = document.createElement("div"); el.className = "gp"; el.setAttribute("role", "alertdialog");
+    gunToast = { el, n: 0, timer: null, id: null };
+    const close = () => { if (!gunToast || gunToast.el !== el) return; clearTimeout(gunToast.timer); gunToast = null; el.classList.add("out"); setTimeout(() => el.remove(), 250); };
+    gunToast.close = close;
+    el.addEventListener("click", (ev) => {
+      if (ev.target.closest(".gp-x")) return close();
+      if (ev.target.closest(".gp-v")) { const id = gunToast && gunToast.id; close(); if (id != null) dlgEvent(id); }
+    });
+    $("popups").appendChild(el);
+  }
+  const t = gunToast; t.n += 1; t.id = e.id;
+  t.el.classList.toggle("armed", !!d.with_poacher);
+  t.el.innerHTML = `<div class="gp-ic">${icon("boom")}${t.n > 1 ? `<span class="gp-n">${t.n}</span>` : ""}</div>
     <div class="gp-tx"><div class="gp-t">${esc(e.title)}</div>
-      <div class="gp-s">${fmt(e.ts)}${d.score != null ? ` · confidence ${Math.round(d.score * 100)}%` : ""}${d.label ? ` · ${esc(d.label)}` : ""}</div></div>
+      <div class="gp-s">${t.n > 1 ? `${t.n} gunshots · latest ` : ""}${new Date(e.ts * 1000).toLocaleTimeString()}${d.label ? ` · ${esc(d.label)}` : ""}</div></div>
     <button class="gp-v">View</button><button class="gp-x" aria-label="Close">${icon("x")}</button>`;
-  const close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 250); };
-  el.querySelector(".gp-x").onclick = close;
-  el.querySelector(".gp-v").onclick = () => { close(); dlgEvent(e.id); };
-  $("popups").prepend(el);
-  setTimeout(close, 20000);
+  t.el.classList.remove("bump"); void t.el.offsetWidth; t.el.classList.add("bump");
+  clearTimeout(t.timer); t.timer = setTimeout(t.close, 20000);
 }
 
 /* ---------- live link ---------- */

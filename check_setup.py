@@ -103,14 +103,15 @@ def mic_test():
         lvl = float(np.sqrt(np.mean(seg ** 2))) if len(seg) else 0.0
         raw = buf[max(0, end - int(rate * 0.5)):end, 0]; clip = len(raw) and float(np.max(np.abs(raw))) >= 0.98
         clips += bool(clip)
-        z, _ = zero.score(seg); h = head.score(seg)[0] if head else None
+        z, _, voice = zero.score_all(seg); h = head.score(seg)[0] if head else None
         new = buf[fed:end, 0]; fed = end
         if rate != SR:
             from scipy.signal import resample_poly
             from math import gcd
             g = gcd(SR, rate); new = resample_poly(new, SR // g, rate // g).astype(np.float32)
         got = bd.feed(new); L = bd.last; bang_max = max(bang_max, L["db"])
-        bflag = "  <== LOUD BANG" if got else ""
+        veto = cfg["audio"].get("bang", {}).get("voice_veto", 0.3)
+        bflag = ("  (loud, but a voice: ignored)" if voice >= veto else "  <== LOUD BANG") if got else ""
         top = ", ".join(f"{l} {p:.2f}" for l, p in zero.explain(seg))
         flag = "  <== GUNSHOT" if z >= cfg["audio"].get("threshold", 0.35) else ""
         print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}  {L['db']:6.0f}  {L['rise']:4.0f}  {L['jump']:4.0f}   {top}{flag}{bflag}{'  CLIPPED' if clip else ''}")
