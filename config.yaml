@@ -59,10 +59,14 @@ audio:
   # Which detector raises a gunshot alert: model (YAMNet), loudness (a sudden
   # loud bang) or either. Loudness also fires on claps and door slams.
   detector: either
+  # Calibrated on the node's C-Media mic (check_setup.py --mic): played shots
+  # peaked at -7 to -10 dB and rose 22-43 dB above the room; talking near the
+  # node peaked at -37 to -46 dB. Re-run the test if the mic or its volume changes.
   bang:
-    min_db: -15     # how loud the bang must be (dBFS, 0 = maximum)
-    rise_db: 20     # how much louder than the room just before
-    jump_db: 12     # how fast: rise within 10-20 ms (speech ramps up slower)
+    min_db: -20     # how loud the bang must be (dBFS, 0 = maximum)
+    rise_db: 15     # how much louder than the room just before
+    jump_db: 0      # how fast it must get loud (dB within 20 ms); 0 = off. Shots played
+                    # through a speaker built up too slowly for the 12 dB rule.
 
 ble:
   enabled: true
