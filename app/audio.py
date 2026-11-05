@@ -103,6 +103,44 @@ class GunshotScorer:
         return [(self.yam.labels[i], float(scores[i])) for i in top]
 
 
+class BangDetector:
+    """Loudness-based gunshot detector: fires on a sudden, loud bang.
+
+    Works on 10 ms frames of the 16 kHz stream. A bang is a frame that is (1) loud in absolute terms (min_db, dBFS),
+    (2) much louder than the room a moment before (rise_db over the median of the previous 50-300 ms) and (3) reached
+    almost instantly (jump_db over the louder of the two frames just before it). Condition 3 is what separates a
+    gunshot from speech, which also gets loud but ramps up over several frames. Claps, door slams and dropped objects
+    can still trigger it, so alerts from this detector are labelled "loud bang"."""
+
+    FRAME = SR // 100
+
+    def __init__(self, min_db: float = -15, rise_db: float = 20, jump_db: float = 12, refractory_s: float = 0.5):
+        self.min_db, self.rise_db, self.jump_db = min_db, rise_db, jump_db
+        self.refractory = int(refractory_s * 100)
+        self.hist: list[float] = []
+        self.rest = np.zeros(0, np.float32)
+        self.quiet = 0
+        self.last = {"db": -120.0, "rise": 0.0, "jump": 0.0}   # loudest frame of the latest block, for the mic test
+
+    def feed(self, x: np.ndarray) -> list[dict[str, float]]:
+        """Feed 16 kHz samples; returns the bangs found in them."""
+        x = np.concatenate([self.rest, np.asarray(x, np.float32)])
+        n = len(x) // self.FRAME; self.rest = x[n * self.FRAME:]
+        bangs, loudest = [], {"db": -120.0, "rise": 0.0, "jump": 0.0}
+        for f in x[:n * self.FRAME].reshape(n, self.FRAME):
+            db = 20 * math.log10(float(np.sqrt(np.mean(f * f))) + 1e-9)
+            h = self.hist
+            if len(h) >= 30:
+                base = float(np.median(h[-30:-5])); jump = db - max(h[-1], h[-2]); rise = db - base
+                if db > loudest["db"]: loudest = {"db": db, "rise": rise, "jump": jump}
+                if self.quiet <= 0 and db >= self.min_db and rise >= self.rise_db and jump >= self.jump_db:
+                    bangs.append({"db": db, "rise": rise, "jump": jump}); self.quiet = self.refractory
+            self.quiet -= 1
+            h.append(db); del h[:-40]
+        self.last = loudest
+        return bangs
+
+
 SKIP_MICS = ("hands-free", "headset", "bluetooth", "sound mapper", "primary sound capture", "stereo mix", "what u hear")
 PREFER_MICS = ("c-media", "usb", "webcam", "camera")
 
@@ -153,6 +191,10 @@ class AudioWorker(threading.Thread):
             log.exception("audio init failed")
             return
         threshold = self.cfg.get("head_threshold", 0.99) if scorer.head else self.cfg.get("threshold", 0.35)
+        mode = self.cfg.get("detector", "either")          # model | loudness | either
+        b = self.cfg.get("bang", {})
+        bang = BangDetector(b.get("min_db", -15), b.get("rise_db", 20), b.get("jump_db", 12)) if mode in ("loudness", "either") else None
+        bangs: list[dict[str, float]] = []
         dev, dev_name = pick_microphone(self.cfg.get("device"))
         ring = np.zeros(SR * 2, dtype=np.float32)
         lock = threading.Lock()
@@ -167,6 +209,8 @@ class AudioWorker(threading.Thread):
                 g = math.gcd(SR, int(rate)); x = resample_poly(x, SR // g, int(rate) // g).astype(np.float32)
             with lock:
                 ring = np.concatenate([ring, x])[-SR * 2:]
+                if bang is not None:
+                    bangs.extend(bang.feed(x))
 
         def open_stream():
             nonlocal rate
@@ -186,11 +230,19 @@ class AudioWorker(threading.Thread):
                     time.sleep(self.HOP)
                     with lock:
                         win = ring[-WIN:].copy()
+                        found, bangs[:] = list(bangs), []
+                    if found:
+                        top = max(found, key=lambda d: d["rise"])
+                        self.status["last_bang"] = {k: round(v, 1) for k, v in top.items()}
+                        try:
+                            self.engine.on_gunshot(min(1.0, top["rise"] / 40), f"Loud bang (+{top['rise']:.0f} dB)")
+                        except Exception:  # noqa: BLE001
+                            log.exception("engine.on_gunshot failed")
                     self.status["level"] = float(np.sqrt(np.mean(win ** 2)))
                     score, label = scorer.score(win)
                     self.status["score"] = round(score, 3)
                     self.status["peak"] = round(max(score, self.status["peak"] * 0.9), 3)   # decays, so a short spike stays visible
-                    if score >= threshold:
+                    if mode != "loudness" and score >= threshold:
                         try:
                             self.engine.on_gunshot(score, label)
                         except Exception:  # noqa: BLE001

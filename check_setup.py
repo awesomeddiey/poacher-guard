@@ -67,7 +67,7 @@ def mic_test():
     import numpy as np
     import sounddevice as sd
     sys.path.insert(0, str(ROOT))
-    from app.audio import SR, WIN, GunshotScorer, pick_microphone
+    from app.audio import SR, WIN, BangDetector, GunshotScorer, pick_microphone
     from app.config import load_config
     cfg = load_config()
     apis = sd.query_hostapis()
@@ -89,7 +89,8 @@ def mic_test():
     try: sd.check_input_settings(device=dev, samplerate=SR, channels=1)
     except Exception: rate = int(sd.query_devices(dev, "input")["default_samplerate"])
     print(f"Recording at {rate} Hz. PLAY A GUNSHOT SOUND NEAR THE MICROPHONE NOW (15 s)...\n")
-    print("  time  level              gunshot  trained   what the model hears")
+    b = cfg["audio"].get("bang", {}); bd = BangDetector(b.get("min_db", -15), b.get("rise_db", 20), b.get("jump_db", 12)); fed = 0; bang_max = -120.0
+    print("  time  level              gunshot  trained  loudest  rise  jump   what the model hears")
     buf = sd.rec(int(15 * rate), samplerate=rate, channels=1, dtype="float32", device=dev); best = (0, 0, None); clips = 0
     t0 = time.time()
     for step in range(1, 30):
@@ -103,12 +104,21 @@ def mic_test():
         raw = buf[max(0, end - int(rate * 0.5)):end, 0]; clip = len(raw) and float(np.max(np.abs(raw))) >= 0.98
         clips += bool(clip)
         z, _ = zero.score(seg); h = head.score(seg)[0] if head else None
+        new = buf[fed:end, 0]; fed = end
+        if rate != SR:
+            from scipy.signal import resample_poly
+            from math import gcd
+            g = gcd(SR, rate); new = resample_poly(new, SR // g, rate // g).astype(np.float32)
+        got = bd.feed(new); L = bd.last; bang_max = max(bang_max, L["db"])
+        bflag = "  <== LOUD BANG" if got else ""
         top = ", ".join(f"{l} {p:.2f}" for l, p in zero.explain(seg))
         flag = "  <== GUNSHOT" if z >= cfg["audio"].get("threshold", 0.35) else ""
-        print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}   {top}{flag}{'  CLIPPED' if clip else ''}")
+        print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}  {L['db']:6.0f}  {L['rise']:4.0f}  {L['jump']:4.0f}   {top}{flag}{bflag}{'  CLIPPED' if clip else ''}")
         if z > best[0]: best = (z, step * 0.5, top)
     sd.wait()
     thr = cfg["audio"].get("threshold", 0.35)
+    print(f"\n  Loudness detector: a bang needs loudest >= {bd.min_db} dB, rise >= {bd.rise_db} and jump >= {bd.jump_db}. Loudest sound heard: {bang_max:.0f} dB.")
+    print("  Set audio.bang.min_db in config.yaml a few dB ABOVE the 'loudest' value of talking near the node and BELOW that of a shot.")
     if clips:
         say(WARN, f"the microphone was overloaded (CLIPPED) in {clips} of 29 steps. A clipped gunshot sounds like an engine to the")
         print("       model. Lower the input volume: Settings > System > Sound > Microphone (C-Media) > Input volume about 30-40,")

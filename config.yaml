@@ -56,6 +56,13 @@ audio:
   use_custom_head: false
   custom_head: models/gunshot_head.json
   head_threshold: 0.99
+  # Which detector raises a gunshot alert: model (YAMNet), loudness (a sudden
+  # loud bang) or either. Loudness also fires on claps and door slams.
+  detector: either
+  bang:
+    min_db: -15     # how loud the bang must be (dBFS, 0 = maximum)
+    rise_db: 20     # how much louder than the room just before
+    jump_db: 12     # how fast: rise within 10-20 ms (speech ramps up slower)
 
 ble:
   enabled: true

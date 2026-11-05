@@ -142,7 +142,9 @@ class AlertEngine:
             return None
         self._last_gunshot_ts = self.clock()
         armed = (self.clock() - self._last_poacher_ts) <= self.correlate_window
-        title = "GUNSHOT + poacher sighting - ARMED POACHER" if armed else f"Gunshot detected ({score:.0%})"
+        bang = label.startswith("Loud bang")
+        what = f"Loud bang - possible gunshot ({label[10:].strip('()')})" if bang else f"Gunshot detected ({score:.0%})"
+        title = ("LOUD BANG" if bang else "GUNSHOT") + " + poacher sighting - ARMED POACHER" if armed else what
         return self._emit("gunshot", "critical", title, frame,
                           detail={"score": round(float(score), 3), "label": label,
                                   "with_poacher": armed})
