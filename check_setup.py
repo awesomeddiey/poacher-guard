@@ -1,4 +1,4 @@
-"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble] [--mic [name]]
+"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble] [--mic [name]] [--file x.wav]
 
   * Python packages and model files
   * cameras (index, size) and a saved test picture per camera in data/camera_N.jpg
@@ -90,7 +90,7 @@ def mic_test():
     except Exception: rate = int(sd.query_devices(dev, "input")["default_samplerate"])
     print(f"Recording at {rate} Hz. PLAY A GUNSHOT SOUND NEAR THE MICROPHONE NOW (15 s)...\n")
     print("  time  level              gunshot  trained   what the model hears")
-    buf = sd.rec(int(15 * rate), samplerate=rate, channels=1, dtype="float32", device=dev); best = (0, 0, None)
+    buf = sd.rec(int(15 * rate), samplerate=rate, channels=1, dtype="float32", device=dev); best = (0, 0, None); clips = 0
     t0 = time.time()
     for step in range(1, 30):
         while time.time() - t0 < step * 0.5 + 0.05: time.sleep(0.02)
@@ -100,13 +100,19 @@ def mic_test():
             from math import gcd
             g = gcd(SR, rate); seg = resample_poly(seg, SR // g, rate // g).astype(np.float32)
         lvl = float(np.sqrt(np.mean(seg ** 2))) if len(seg) else 0.0
+        raw = buf[max(0, end - int(rate * 0.5)):end, 0]; clip = len(raw) and float(np.max(np.abs(raw))) >= 0.98
+        clips += bool(clip)
         z, _ = zero.score(seg); h = head.score(seg)[0] if head else None
         top = ", ".join(f"{l} {p:.2f}" for l, p in zero.explain(seg))
         flag = "  <== GUNSHOT" if z >= cfg["audio"].get("threshold", 0.35) else ""
-        print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}   {top}{flag}")
+        print(f"  {step * 0.5:4.1f}s {'#' * min(16, int(lvl * 160)):<16}  {z:6.2f}  {'' if h is None else f'{h:6.2f}':>7}   {top}{flag}{'  CLIPPED' if clip else ''}")
         if z > best[0]: best = (z, step * 0.5, top)
     sd.wait()
     thr = cfg["audio"].get("threshold", 0.35)
+    if clips:
+        say(WARN, f"the microphone was overloaded (CLIPPED) in {clips} of 29 steps. A clipped gunshot sounds like an engine to the")
+        print("       model. Lower the input volume: Settings > System > Sound > Microphone (C-Media) > Input volume about 30-40,")
+        print("       and turn Audio enhancements off. Then run the test again.")
     if best[0] >= thr: say(OK, f"gunshot heard (score {best[0]:.2f} at {best[1]} s, threshold {thr})")
     else:
         say(WARN, f"no gunshot above the threshold {thr} (best {best[0]:.2f}).")
@@ -114,6 +120,31 @@ def mic_test():
         print("       another index from the list, then put that name in config.yaml -> audio.device.")
         print("       If the level moved but the score stayed low, play the sound louder and closer, from a speaker rather than a phone.")
 
+
+def file_test(path):
+    """Score a recording with the same 1 s windows as the live detector (no microphone involved)."""
+    import numpy as np
+    import soundfile as sf
+    from math import gcd
+    from scipy.signal import resample_poly
+    sys.path.insert(0, str(ROOT))
+    from app.audio import SR, WIN, GunshotScorer
+    from app.config import load_config
+    cfg = load_config(); zero = GunshotScorer(cfg); thr = cfg["audio"].get("threshold", 0.35)
+    w, r = sf.read(path, dtype="float32", always_2d=True); w = w.mean(1)
+    if r != SR: g = gcd(SR, r); w = resample_poly(w, SR // g, r // g).astype(np.float32)
+    print(f"\nScoring {path} ({len(w) / SR:.1f} s) without the microphone:\n")
+    best = 0.0
+    for i in range(0, max(1, len(w) - WIN + 1), SR // 2):
+        seg = w[i:i + WIN]; z, _ = zero.score(seg); best = max(best, z)
+        top = ", ".join(f"{l} {p:.2f}" for l, p in zero.explain(seg))
+        print(f"  {i / SR:5.1f}s  {z:5.2f}   {top}{'  <== GUNSHOT' if z >= thr else ''}")
+    say(OK if best >= thr else WARN, f"best gunshot score {best:.2f} (threshold {thr})")
+
+
+if "--file" in sys.argv:
+    try: file_test(sys.argv[sys.argv.index("--file") + 1])
+    except Exception as e: say(BAD, f"file test failed: {e}")
 
 if "--mic" in sys.argv:
     try: mic_test()
