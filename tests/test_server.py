@@ -63,3 +63,15 @@ def test_node_heartbeat_shows_telemetry_and_activity(tmp_path):
         c.post("/api/simulate/poacher")
         assert sum(c.get("/api/status").json()["activity_24h"]) == 1
         assert c.get("/api/status").json()["system"]["uptime_s"] >= 0
+
+
+def test_sms_feed_for_gsm_node(tmp_path):
+    with client(tmp_path) as c:
+        start = int(c.get("/api/sms").text.split()[0])            # node boots: only the newest id
+        c.post("/api/simulate/poacher"); c.post("/api/simulate/fire")
+        lines = c.get(f"/api/sms?after={start}").text.strip().split("\n")
+        assert int(lines[0]) > start and len(lines) == 2          # fire is texted by the node itself, not here
+        _id, typ, text = lines[1].split("\t")
+        assert typ == "poacher" and text.startswith("POACHER GUARD") and "POACHER ALERT" in text
+        assert len(text) <= 160 and text.isascii() and "maps.google.com" in text
+        assert c.get(f"/api/sms?after={lines[0]}").text.strip() == lines[0]   # nothing new

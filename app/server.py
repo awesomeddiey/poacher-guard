@@ -15,7 +15,7 @@ from typing import Any
 
 import cv2
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -138,6 +138,27 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
     @app.get("/api/events")
     def events(limit: int = 100):
         return store.recent(min(limit, 500))
+
+    @app.get("/api/sms", response_class=PlainTextResponse)
+    def sms_feed(after: int = -1, types: str = "poacher,gunshot"):
+        """Alerts for the ESP32 GSM node, as plain text it can parse without a JSON library.
+        Line 1: the newest event id (the node sends it back as `after` next time).
+        Then one line per new critical alert:  <id> TAB <type> TAB <SMS text, at most 160 plain ASCII chars>.
+        after=-1 (node just booted) returns only the id, so old alerts are not texted again."""
+        rows = store.recent(50)
+        top = max((e["id"] for e in rows), default=0)
+        if after < 0:
+            return f"{top}\n"
+        want = {t.strip() for t in types.split(",") if t.strip()}
+        site, out = cfg["site"], [str(top)]
+        for e in sorted(rows, key=lambda e: e["id"]):
+            if e["id"] <= after or e["type"] not in want or e["severity"] != "critical" or time.time() - e["ts"] > 600:
+                continue
+            title = e["title"].encode("ascii", "replace").decode().replace("?", "-")
+            text = (f"POACHER GUARD {time.strftime('%H:%M', time.localtime(e['ts']))} {title}. "
+                    f"{site['name']} https://maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
+            out.append(f"{e['id']}\t{e['type']}\t{text[:160]}")
+        return "\n".join(out) + "\n"
 
     @app.post("/api/events/{event_id}/ack")
     def ack(event_id: int):

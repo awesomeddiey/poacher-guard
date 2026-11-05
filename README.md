@@ -43,6 +43,7 @@ No hardware yet? Use the **Test alerts** buttons on the dashboard, or set `visio
 ## Hardware setup
 
 1. **Webcam** – plug in; `vision.source: 0` (try 1 for a USB cam).
+* **Field node with SMS alerts** – `firmware/flame_gsm_node/flame_gsm_node.ino` (ESP32 38-pin): flame sensor on GPIO34/GPIO27 plus a SIM800L/SIM7600/A7670 GSM module on GPIO16/17. Texts a fire immediately, and texts every POACHER or GUNSHOT alert it reads from the laptop (`GET /api/sms`). Wiring and settings are at the top of the file.
 2. **Ranger tag** – the registered tag is an iTAG beacon (`23:11:22:00:4D:20`, ranger R001), matched by address only. Alternatively flash `firmware/ranger_tag/ranger_tag.ino` to a spare ESP32, change `TAG_NAME` per ranger, and add the same name under `ble.tags` in `config.yaml`. (Any BLE beacon works if you put its MAC in `address`.) Needs a laptop with Bluetooth 4.0+.
 3. **Flame node** – wire the flame sensor (see header of `firmware/flame_node/flame_node.ino`), set Wi-Fi + the laptop's IP, flash. Put its real GPS in `flame.nodes`.
 4. **Site GPS** – set `site.lat/lon` in `config.yaml`. Camera alerts are stamped with this fixed position (a laptop has no GPS).
