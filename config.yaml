@@ -107,8 +107,8 @@ flame:
   # this many seconds without a heartbeat.
   offline_after_s: 30
   nodes:
-    - id: FLAME-01
-      label: "Flame node 1 (river camp)"
+    - id: SIM8008          # ESP32 flame + GSM node (firmware/flame_gsm_node, NODE_ID)
+      label: "Sensor node SIM8008"
       lat: -17.8322
       lon: 31.0566
 

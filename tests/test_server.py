@@ -18,8 +18,8 @@ def client(tmp_path):
 
 def test_flame_endpoint_creates_fire_event(tmp_path):
     with client(tmp_path) as c:
-        assert c.post("/api/sensors/flame", json={"node": "FLAME-01", "fire": False, "raw": 900}).json()["alert"] is False
-        assert c.post("/api/sensors/flame", json={"node": "FLAME-01", "fire": True, "raw": 80}).json()["alert"] is True
+        assert c.post("/api/sensors/flame", json={"node": "SIM8008", "fire": False, "raw": 900}).json()["alert"] is False
+        assert c.post("/api/sensors/flame", json={"node": "SIM8008", "fire": True, "raw": 80}).json()["alert"] is True
         evs = c.get("/api/events").json()
         assert evs[0]["type"] == "fire"
         st = c.get("/api/status").json()
@@ -72,6 +72,14 @@ def test_sms_feed_for_gsm_node(tmp_path):
         lines = c.get(f"/api/sms?after={start}").text.strip().split("\n")
         assert int(lines[0]) > start and len(lines) == 2          # fire is texted by the node itself, not here
         _id, typ, text = lines[1].split("\t")
-        assert typ == "poacher" and text.startswith("POACHER GUARD") and "POACHER ALERT" in text
+        assert typ == "poacher" and text.startswith("THREAT: POACHER ALERT")
         assert len(text) <= 160 and text.isascii() and "maps.google.com" in text
         assert c.get(f"/api/sms?after={lines[0]}").text.strip() == lines[0]   # nothing new
+
+
+def test_sms_text_names_the_node(tmp_path):
+    with client(tmp_path) as c:
+        start = int(c.get("/api/sms").text.split()[0])
+        c.post("/api/simulate/poacher")
+        text = c.get(f"/api/sms?after={start}&node=SIM8008").text.strip().split("\n")[1].split("\t")[2]
+        assert text.startswith("THREAT: POACHER ALERT") and "| NODE: SIM8008 |" in text and len(text) <= 160

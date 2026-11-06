@@ -93,8 +93,8 @@ def test_poacher_then_gunshot_escalates(tmp_path):
 
 def test_flame_alert_uses_node_location_and_offline(tmp_path):
     eng, reg, clock, pub = make(tmp_path)
-    assert eng.on_flame("FLAME-01", False) is None
-    ev = eng.on_flame("FLAME-01", True, 120)
+    assert eng.on_flame("SIM8008", False) is None
+    ev = eng.on_flame("SIM8008", True, 120)
     assert ev["type"] == "fire" and ev["lat"] == load_config()["flame"]["nodes"][0]["lat"]
     assert eng.node_status()[0]["fire"] is True
     clock.t += 31

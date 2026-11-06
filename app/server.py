@@ -140,11 +140,12 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         return store.recent(min(limit, 500))
 
     @app.get("/api/sms", response_class=PlainTextResponse)
-    def sms_feed(after: int = -1, types: str = "poacher,gunshot"):
+    def sms_feed(after: int = -1, types: str = "poacher,gunshot", node: str = ""):
         """Alerts for the ESP32 GSM node, as plain text it can parse without a JSON library.
         Line 1: the newest event id (the node sends it back as `after` next time).
         Then one line per new critical alert:  <id> TAB <type> TAB <SMS text, at most 160 plain ASCII chars>.
-        after=-1 (node just booted) returns only the id, so old alerts are not texted again."""
+        after=-1 (node just booted) returns only the id, so old alerts are not texted again.
+        Text: "THREAT: <alert> | NODE: <node> | <HH:MM> | maps.google.com/?q=<lat,lon>"; `node` is the GSM node's name."""
         rows = store.recent(50)
         top = max((e["id"] for e in rows), default=0)
         if after < 0:
@@ -155,9 +156,11 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             if e["id"] <= after or e["type"] not in want or e["severity"] != "critical" or time.time() - e["ts"] > 600:
                 continue
             title = e["title"].encode("ascii", "replace").decode().replace("?", "-")
-            text = (f"POACHER GUARD {time.strftime('%H:%M', time.localtime(e['ts']))} {title}. "
-                    f"{site['name']} https://maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
-            out.append(f"{e['id']}\t{e['type']}\t{text[:160]}")
+            name = "".join(ch for ch in (node or site["name"]) if ch.isascii() and ch.isprintable())[:20]
+            tail = (f" | NODE: {name} | {time.strftime('%H:%M', time.localtime(e['ts']))}"
+                    f" | maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
+            text = "THREAT: " + title[:160 - len("THREAT: ") - len(tail)] + tail      # always fits one SMS
+            out.append(f"{e['id']}\t{e['type']}\t{text}")
         return "\n".join(out) + "\n"
 
     @app.post("/api/events/{event_id}/ack")
@@ -207,7 +210,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
                     engine.on_flame(n["id"], False, random.randint(2500, 3900))
             ev = None
         elif kind == "fire":
-            node = (cfg["flame"]["nodes"] or [{"id": "FLAME-01"}])[0]["id"]
+            node = (cfg["flame"]["nodes"] or [{"id": "SIM8008"}])[0]["id"]
             ev = engine.on_flame(node, True, 100)
         else:
             raise HTTPException(404, "unknown kind")
