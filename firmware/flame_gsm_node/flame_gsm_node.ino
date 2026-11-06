@@ -24,7 +24,7 @@
 // ------------------------------------------------------------------ settings
 const char* WIFI_SSID = "YOUR_WIFI";
 const char* WIFI_PASS = "YOUR_PASSWORD";
-const char* SERVER    = "http://10.225.4.245:8000";   // laptop running Poacher Guard (its IP + :8000)
+const char* SERVER    = "http://192.168.1.136:8000";   // laptop running Poacher Guard (its IP + :8000)
 const char* NODE_ID   = "SIM8008";                     // node name in texts and on the dashboard (config.yaml flame.nodes)
 
 const char* PHONES[] = {"+263772109787"};               // 0772109787 in international format
