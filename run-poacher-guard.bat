@@ -6,23 +6,11 @@ echo ==================================================
 echo   POACHER GUARD  -  starting
 echo ==================================================
 
-rem ---- 1. Python present? ----
-where py >nul 2>nul
-if errorlevel 1 (
-  echo.
-  echo Python is not installed. Install Python 3.11 or 3.12 from https://www.python.org/downloads/
-  echo and tick "Add python.exe to PATH" in the installer. Then double-click this file again.
-  goto :end
-)
-
-rem ---- 2. First run: create environment and install packages (needs internet, once) ----
+rem ---- 1. First run on this PC: install everything (Python, packages, shortcuts) ----
 if not exist ".venv\Scripts\python.exe" (
-  echo.
-  echo First run: installing packages. This needs internet and takes about 5 to 10 minutes. Please wait...
-  py -3 -m venv .venv || goto :fail
-  ".venv\Scripts\python.exe" -m pip install --upgrade pip || goto :fail
-  ".venv\Scripts\python.exe" -m pip install -r requirements.txt || goto :fail
-  echo Packages installed.
+  echo First run: installing. This needs internet and takes about 10 minutes...
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\install.ps1" -Unattended -NoStart
+  if not exist ".venv\Scripts\python.exe" goto :fail
 )
 
 rem ---- 3. Quick check (shows cameras and microphones; never blocks the start) ----

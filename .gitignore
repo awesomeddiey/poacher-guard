@@ -9,3 +9,8 @@ results/*
 !results/chapter3/
 !results/.gitkeep
 _fixtures/
+
+# local tools and settings made by the one-click scripts
+tools/arduino-cli/
+tools/node-settings.json
+install.log

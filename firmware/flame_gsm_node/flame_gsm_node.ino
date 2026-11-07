@@ -22,12 +22,12 @@
 #include <HTTPClient.h>
 
 // ------------------------------------------------------------------ settings
-const char* WIFI_SSID = "YOUR_WIFI";
+const char* WIFI_SSID = "YOUR_WIFI";   // UPLOAD-ESP32-NODE.bat fills in Wi-Fi, PC address, phones and node name
 const char* WIFI_PASS = "YOUR_PASSWORD";
 const char* SERVER    = "http://192.168.1.136:8000";   // laptop running Poacher Guard (its IP + :8000)
 const char* NODE_ID   = "SIM8008";                     // node name in texts and on the dashboard (config.yaml flame.nodes)
 
-const char* PHONES[] = {"+263772109787"};               // 0772109787 in international format
+const char* PHONES[] = {"+2637XXXXXXXX"};               // ranger phone(s), international format (+263 7...)
 const int   N_PHONES = sizeof(PHONES) / sizeof(PHONES[0]);
 const char* SMS_TYPES = "poacher,gunshot";              // laptop alerts that are texted
 const unsigned long SMS_GAP_MS = 120000;                // at most one text per threat type every 2 minutes
