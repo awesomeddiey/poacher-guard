@@ -124,7 +124,16 @@ void postFlame(bool fire) {
   http.addHeader("Content-Type", "application/json");
   int code = http.POST(String("{\"node\":\"") + NODE_ID + "\",\"fire\":" + (fire ? "true" : "false") + ",\"raw\":" + (fire ? 0 : 4095) + "}");
   http.end();
+  static int lastCode = 0;
+  if (code != lastCode) {                       // print only when it changes, so the monitor stays readable
+    if (code == 200) Serial.printf("[laptop] OK - node %s shows on the dashboard at %s\n", NODE_ID, SERVER);
+    else Serial.printf("[laptop] report FAILED (%d) to %s - %s\n", code, SERVER,
+                       code == -1 ? "cannot connect: wrong IP, laptop on another Wi-Fi, or Windows firewall blocking port 8000"
+                                  : "Poacher Guard answered with an error");
+    lastCode = code;
+  }
   if (code == 200) lastFlamePost = millis();
+  else lastFlamePost = millis() - 7000;         // retry in about 3 s instead of every loop
 }
 
 // Ask the laptop for alerts newer than lastAlertId and text each one.
