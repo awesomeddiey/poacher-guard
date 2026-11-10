@@ -13,6 +13,9 @@ if not exist ".venv\Scripts\python.exe" (
   if not exist ".venv\Scripts\python.exe" goto :fail
 )
 
+rem ---- 2. Update to the newest version from GitHub (skipped quietly when offline) ----
+if exist "tools\update.py" ".venv\Scripts\python.exe" "tools\update.py" --skip run-poacher-guard.bat
+
 rem ---- 3. Quick check (shows cameras and microphones; never blocks the start) ----
 echo.
 ".venv\Scripts\python.exe" check_setup.py
