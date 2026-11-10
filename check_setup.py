@@ -1,4 +1,4 @@
-"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble] [--mic [name]] [--file x.wav]
+"""Pre-flight check for Poacher Guard. Run it before the demo:   python check_setup.py [--ble] [--node] [--mic [name]] [--file x.wav]
 
   * Python packages and model files
   * cameras (index, size) and a saved test picture per camera in data/camera_N.jpg
@@ -160,6 +160,18 @@ if "--file" in sys.argv:
 if "--mic" in sys.argv:
     try: mic_test()
     except Exception as e: say(BAD, f"microphone test failed: {e}")
+
+if "--node" in sys.argv:
+    sys.path.insert(0, str(ROOT))
+    from app.config import load_config
+    nl = load_config().get("node_link", {}); want = (nl.get("ble") or {}).get("name") or nl.get("node_id", "SIM8008")
+    print(f"\nLooking for the sensor node '{want}' over Bluetooth for 8 seconds (power it on, and disconnect it from any phone)...")
+    try:
+        seen = asyncio.run(scan())
+        hit = [(a, r) for a, (n, r) in seen.items() if n == want]
+        if hit: say(OK, f"node '{want}' found at {hit[0][0]} with signal {hit[0][1]} dBm (-30 very close, -60 good, -85 weak)")
+        else: say(WARN, f"node '{want}' not heard. Powered? Within about 10 m? Not connected to a phone? Programmed with the Bluetooth sketch? (tools\\upload_node.ps1)")
+    except Exception as e: say(BAD, f"bluetooth scan failed: {e}. Turn Bluetooth on in Windows settings")
 
 if "--ble" in sys.argv:
     print("\nScanning for Bluetooth devices for 8 seconds (hold your beacon close to the PC)...")

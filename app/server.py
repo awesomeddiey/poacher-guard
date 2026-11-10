@@ -69,6 +69,13 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             asyncio.run_coroutine_threadsafe(_broadcast(msg), loop)
         if notifier and msg.get("kind") == "event":
             threading.Thread(target=notifier, args=(msg["event"],), daemon=True).start()
+        if msg.get("kind") == "event":
+            usb, ev = workers.get("node_link"), msg["event"]
+            if usb and ev.get("severity") == "critical" and ev.get("type") in ("poacher", "gunshot"):
+                try:
+                    usb.send_sms(ev["type"], sms_text(ev, usb.node_id))
+                except Exception:  # noqa: BLE001
+                    log.exception("could not hand the alert to the USB node")
 
     async def _broadcast(msg: dict[str, Any]) -> None:
         for ws in list(clients):
@@ -103,6 +110,14 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             if cfg["ble"].get("enabled", True):
                 from .ble_scanner import BleWorker
                 workers["ble"] = BleWorker(registry, publish)
+            nl = cfg.get("node_link", {})
+            node_id = nl.get("node_id") or (cfg["flame"]["nodes"] or [{"id": "SIM8008"}])[0]["id"]
+            if nl.get("mode", "ble") == "ble":
+                from .ble_node import BleNodeWorker
+                workers["node_link"] = BleNodeWorker(nl.get("ble", {}), engine, node_id)
+            elif nl.get("mode") == "usb":
+                from .serial_node import SerialNodeWorker
+                workers["node_link"] = SerialNodeWorker(nl.get("usb", {}), engine, node_id)
             for w in workers.values():
                 w.start()
         yield
@@ -126,7 +141,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         system = {"uptime_s": int(time.time() - started), "load1": load1,
                   "disk_free_gb": round(disk.free / 1e9, 1), "cpus": os.cpu_count()}
         return {"system": system, "activity_24h": store.activity_24h(time.time()),
-                "site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"),
+                "site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"), "node_link": w("node_link"),
                 "rangers": registry.status(), "verdict": engine.verdict, "nodes": engine.node_status(),
                 "simulation": bool(cfg["server"].get("allow_simulation", False)),
                 "counts_24h": store.counts_since(time.time() - 86400)}
@@ -138,6 +153,14 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
     @app.get("/api/events")
     def events(limit: int = 100):
         return store.recent(min(limit, 500))
+
+    def sms_text(e: dict[str, Any], node: str = "") -> str:
+        """The text message for an alert: 'THREAT: <alert> | NODE: <node> | HH:MM | map link', at most 160 ASCII chars."""
+        title = e["title"].encode("ascii", "replace").decode().replace("?", "-")
+        name = "".join(ch for ch in (node or cfg["site"]["name"]) if ch.isascii() and ch.isprintable())[:20]
+        tail = (f" | NODE: {name} | {time.strftime('%H:%M', time.localtime(e['ts']))}"
+                f" | maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
+        return "THREAT: " + title[:160 - len("THREAT: ") - len(tail)] + tail
 
     @app.get("/api/sms", response_class=PlainTextResponse)
     def sms_feed(after: int = -1, types: str = "poacher,gunshot", node: str = ""):
@@ -151,16 +174,11 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         if after < 0:
             return f"{top}\n"
         want = {t.strip() for t in types.split(",") if t.strip()}
-        site, out = cfg["site"], [str(top)]
+        out = [str(top)]
         for e in sorted(rows, key=lambda e: e["id"]):
             if e["id"] <= after or e["type"] not in want or e["severity"] != "critical" or time.time() - e["ts"] > 600:
                 continue
-            title = e["title"].encode("ascii", "replace").decode().replace("?", "-")
-            name = "".join(ch for ch in (node or site["name"]) if ch.isascii() and ch.isprintable())[:20]
-            tail = (f" | NODE: {name} | {time.strftime('%H:%M', time.localtime(e['ts']))}"
-                    f" | maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
-            text = "THREAT: " + title[:160 - len("THREAT: ") - len(tail)] + tail      # always fits one SMS
-            out.append(f"{e['id']}\t{e['type']}\t{text}")
+            out.append(f"{e['id']}\t{e['type']}\t{sms_text(e, node)}")
         return "\n".join(out) + "\n"
 
     @app.post("/api/events/{event_id}/ack")

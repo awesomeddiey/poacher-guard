@@ -1,52 +1,56 @@
-// Poacher Guard - sensor node SIM8008 (ESP32 DevKit, 38-pin): flame sensor + GSM text alerts.
+// Poacher Guard - sensor node SIM8008 (ESP32 DevKit, 38-pin): STAND-ALONE flame sensor + GSM texts, Bluetooth link to the PC.
 //
-// What it does
-//   1. FIRE: reads the flame sensor on D18. On flame it texts the phone at once (works even if the laptop or Wi-Fi
-//      is down) and shows the fire on the laptop dashboard over Wi-Fi.
-//   2. POACHER / GUNSHOT: every 2 s it asks the laptop (PC running our models) for new alerts and texts them.
-//   Every text says the threat and the node:  THREAT: <what> | NODE: SIM8008 | ...
+// FIRE      The flame sensor on D18 trips -> the node texts the phone(s) at once. Needs no PC, no Wi-Fi, no cable.
+// POACHER   The PC (camera + microphone models) sees a poacher or hears a gunshot -> sends the text over Bluetooth ->
+//           the node sends it by GSM.
+// BLUETOOTH Low Energy, no pairing. The node advertises its name (NODE_ID); Poacher Guard on the PC finds it, connects by
+//           itself and reconnects after a drop. The node shows on the dashboard as online with its flame state.
 //
-// Wiring (ESP32 38-pin DevKit)
-//   Flame sensor module (LM393)          GSM module (SIM800L, or SIM7600 / A7670 4G)
-//     VCC -> 3V3                           TXD -> GPIO16 (RX2)
-//     GND -> GND                           RXD -> GPIO17 (TX2)
-//     DO  -> D18 (GPIO18)                  GND -> ESP32 GND (shared ground is required)
-//     (AO not used: GPIO18 is digital)     VCC -> its OWN supply. SIM800L: 3.7-4.2 V able to give 2 A peaks
-//                                                 (18650 cell or buck converter set to 4.0 V) + 1000 uF capacitor.
-//                                                 Never from the ESP32 3V3/5V pin: it resets when it transmits.
+// Wiring
+//   Flame sensor module:  VCC->3V3   GND->GND   DO->D18 (GPIO18)        (AO not used)
+//   GSM module (SIM800L, or SIM7600 / A7670 4G):
+//       TXD->GPIO16 (RX2)   RXD->GPIO17 (TX2)   GND->ESP32 GND
+//       VCC -> its OWN supply: SIM800L needs 3.7-4.2 V that can give 2 A peaks (18650 cell, or a buck converter set to
+//       4.0 V) + a 1000 uF capacitor. Never from the ESP32 3V3/5V pin: it resets whenever the GSM module transmits.
 //   SIM card: airtime/SMS bundle, PIN lock off. SIM800L needs 2G coverage on the network.
-//   Set the flame module's sensitivity with its blue potentiometer: its DO LED should light only for a flame.
 //
-// Arduino IDE: board "ESP32 Dev Module", Serial Monitor 115200. The laptop must run Poacher Guard on the same Wi-Fi.
-#include <WiFi.h>
-#include <HTTPClient.h>
+// Arduino IDE: board "ESP32 Dev Module", Tools -> Partition Scheme -> "Huge APP (3MB No OTA)" if it says the sketch is
+// too big. Serial Monitor 115200. UPLOAD-ESP32-NODE.bat does all of this and fills in the phone numbers for you.
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
 // ------------------------------------------------------------------ settings
-const char* WIFI_SSID = "YOUR_WIFI";   // UPLOAD-ESP32-NODE.bat fills in Wi-Fi, PC address, phones and node name
-const char* WIFI_PASS = "YOUR_PASSWORD";
-const char* SERVER    = "http://192.168.1.136:8000";   // laptop running Poacher Guard (its IP + :8000)
-const char* NODE_ID   = "SIM8008";                     // node name in texts and on the dashboard (config.yaml flame.nodes)
-
+const char* NODE_ID   = "SIM8008";                      // Bluetooth name, node name in texts and on the dashboard
 const char* PHONES[] = {"+2637XXXXXXXX"};               // ranger phone(s), international format (+263 7...)
 const int   N_PHONES = sizeof(PHONES) / sizeof(PHONES[0]);
-const char* SMS_TYPES = "poacher,gunshot";              // laptop alerts that are texted
 const unsigned long SMS_GAP_MS = 120000;                // at most one text per threat type every 2 minutes
 const bool  TEXT_ON_BOOT = true;                        // "node online" text at start, proves the GSM works
 
 const int  PIN_FLAME = 18;              // D18
 const bool FLAME_ACTIVE_LOW = true;     // most LM393 flame modules pull DO LOW on flame; set false if yours goes HIGH
-const int  CONFIRM_READS = 3;           // consecutive flame reads (250 ms apart) before it counts as fire
+const int  CONFIRM_READS = 3;           // flame reads in a row (250 ms apart) before it counts as fire
 
 const int  GSM_RX = 16, GSM_TX = 17;
 const long GSM_BAUD = 9600;             // SIM800L default; many 4G boards use 115200
 // ---------------------------------------------------------------------------
 
+#define NUS_SERVICE "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"   // Nordic UART: a text pipe over Bluetooth LE
+#define NUS_RX      "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"   // PC -> node
+#define NUS_TX      "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"   // node -> PC
+
 HardwareSerial gsm(2);
+BLECharacteristic* txChar = nullptr;
+volatile bool bleConnected = false, sendHello = false;
+String rxBuf;
+String inbox[4];                         // text commands from the PC, handled in loop() (sending a text takes seconds)
+volatile int inboxN = 0;
+
 bool lastFire = false, gsmReady = false;
 int hot = 0;
-long lastAlertId = -1;                  // newest laptop alert already handled (-1 = not asked yet)
-unsigned long lastFlamePost = 0, lastPoll = 0, lastGsmCheck = 0;
-unsigned long lastSms[3] = {0, 0, 0};   // fire, poacher, gunshot
+unsigned long lastBeat = 0, lastHello = 0, lastGsmCheck = 0, lastPrint = 0;
+unsigned long lastSms[3] = {0, 0, 0};    // fire, poacher, gunshot
 bool smsSent[3] = {false, false, false};
 
 // ---------- GSM ----------
@@ -66,14 +70,14 @@ String at(const String& cmd, unsigned long waitMs = 1000, const char* until = "O
 
 bool gsmInit() {
   for (int i = 0; i < 10 && at("AT").indexOf("OK") < 0; i++) delay(500);
-  at("ATE0");                                   // no echo
+  at("ATE0");
   if (at("AT+CPIN?").indexOf("READY") < 0) { Serial.println("[GSM] SIM not ready (inserted? PIN lock off?)"); return false; }
-  at("AT+CMGF=1");                              // text mode
+  at("AT+CMGF=1");
   at("AT+CSCS=\"GSM\"");
   String reg = at("AT+CREG?");
-  bool onNet = reg.indexOf(",1") >= 0 || reg.indexOf(",5") >= 0;   // home or roaming
-  at("AT+CSQ");                                 // signal 0-31 (below 10 is weak, 99 = none)
-  if (!onNet) Serial.println("[GSM] not on the network yet (antenna? 2G coverage? power supply?)");
+  bool onNet = reg.indexOf(",1") >= 0 || reg.indexOf(",5") >= 0;
+  at("AT+CSQ");                                 // signal 0-31 (below 10 weak, 99 none)
+  if (!onNet) Serial.println("[GSM] not on the network yet (antenna? coverage? power supply?)");
   return onNet;
 }
 
@@ -81,7 +85,7 @@ bool sendSms(const char* number, const String& text) {
   String r = at(String("AT+CMGS=\"") + number + "\"", 5000, ">");
   if (r.indexOf(">") < 0) return false;
   gsm.print(text.substring(0, 160));
-  gsm.write(26);                                // Ctrl+Z sends the message
+  gsm.write(26);                                // Ctrl+Z sends
   String done; unsigned long t0 = millis();
   while (millis() - t0 < 20000) {
     while (gsm.available()) done += (char)gsm.read();
@@ -93,104 +97,131 @@ bool sendSms(const char* number, const String& text) {
   return ok;
 }
 
-// kind: 0 fire, 1 poacher, 2 gunshot. Repeats of the same kind are held back for SMS_GAP_MS.
-void textAll(int kind, const String& text) {
-  if (smsSent[kind] && millis() - lastSms[kind] < SMS_GAP_MS) { Serial.println("[SMS] skipped (same threat texted recently)"); return; }
+// kind: 0 fire, 1 poacher, 2 gunshot. Returns 1 sent, 0 failed, -1 skipped (same threat texted recently).
+int textAll(int kind, const String& text) {
+  if (smsSent[kind] && millis() - lastSms[kind] < SMS_GAP_MS) { Serial.println("[SMS] skipped (same threat texted recently)"); return -1; }
   if (!gsmReady) gsmReady = gsmInit();
   bool any = false;
   for (int i = 0; i < N_PHONES; i++) any |= sendSms(PHONES[i], text);
   if (any) { lastSms[kind] = millis(); smsSent[kind] = true; }
+  return any ? 1 : 0;
 }
 
-// ---------- Wi-Fi / laptop ----------
-void connectWifi() {
-  static unsigned long lastTry = 0;
-  static bool started = false;
-  if (WiFi.status() == WL_CONNECTED) return;
-  if (started && millis() - lastTry < 15000) return;   // retry every 15 s so the flame check keeps running
-  lastTry = millis(); started = true;
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  for (int i = 0; i < 20 && WiFi.status() != WL_CONNECTED; i++) delay(250);
-  if (WiFi.status() == WL_CONNECTED) Serial.printf("[WiFi] connected, IP %s\n", WiFi.localIP().toString().c_str());
-  else Serial.println("[WiFi] not connected (fire texts still work)");
-}
-
-void postFlame(bool fire) {
-  if (WiFi.status() != WL_CONNECTED) return;
-  HTTPClient http;
-  http.setConnectTimeout(2000);
-  http.begin(String(SERVER) + "/api/sensors/flame");
-  http.addHeader("Content-Type", "application/json");
-  int code = http.POST(String("{\"node\":\"") + NODE_ID + "\",\"fire\":" + (fire ? "true" : "false") + ",\"raw\":" + (fire ? 0 : 4095) + "}");
-  http.end();
-  static int lastCode = 0;
-  if (code != lastCode) {                       // print only when it changes, so the monitor stays readable
-    if (code == 200) Serial.printf("[laptop] OK - node %s shows on the dashboard at %s\n", NODE_ID, SERVER);
-    else Serial.printf("[laptop] report FAILED (%d) to %s - %s\n", code, SERVER,
-                       code == -1 ? "cannot connect: wrong IP, laptop on another Wi-Fi, or Windows firewall blocking port 8000"
-                                  : "Poacher Guard answered with an error");
-    lastCode = code;
+// ---------- Bluetooth ----------
+// Send a line to the PC in 20-byte pieces (the smallest Bluetooth packet); the PC joins them at the newline.
+void bleSend(const String& line) {
+  if (!bleConnected || !txChar) return;
+  for (int i = 0; i < (int)line.length(); i += 20) {
+    String piece = line.substring(i, i + 20);
+    txChar->setValue((uint8_t*)piece.c_str(), piece.length());
+    txChar->notify();
+    delay(10);
   }
-  if (code == 200) lastFlamePost = millis();
-  else lastFlamePost = millis() - 7000;         // retry in about 3 s instead of every loop
 }
 
-// Ask the laptop for alerts newer than lastAlertId and text each one.
-void pollAlerts() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  HTTPClient http;
-  http.setConnectTimeout(2000);
-  http.setTimeout(3000);
-  http.begin(String(SERVER) + "/api/sms?after=" + lastAlertId + "&types=" + SMS_TYPES + "&node=" + NODE_ID);
-  int code = http.GET();
-  if (code != 200) { http.end(); Serial.printf("[laptop] no answer (%d) - is Poacher Guard running at %s ?\n", code, SERVER); return; }
-  String body = http.getString();
-  http.end();
-  int nl = body.indexOf('\n');
-  if (nl < 0) return;
-  long newest = body.substring(0, nl).toInt();
-  int pos = nl + 1;
-  while (pos < (int)body.length()) {            // lines: id \t type \t text
-    int end = body.indexOf('\n', pos); if (end < 0) end = body.length();
-    String line = body.substring(pos, end); pos = end + 1;
-    int t1 = line.indexOf('\t'), t2 = line.indexOf('\t', t1 + 1);
-    if (t1 < 0 || t2 < 0) continue;
-    String type = line.substring(t1 + 1, t2), text = line.substring(t2 + 1);
-    textAll(type == "gunshot" ? 2 : 1, text);   // text = "THREAT: POACHER ALERT ... | NODE: SIM8008 | 01:08 | maps..."
+class LinkCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer*) { bleConnected = true; sendHello = true; Serial.println("[BT] PC connected"); }
+  void onDisconnect(BLEServer*) {
+    bleConnected = false;
+    Serial.println("[BT] PC disconnected - advertising again");
+    BLEDevice::startAdvertising();
   }
-  lastAlertId = newest;
+};
+
+class RxCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* c) {
+    auto v = c->getValue();                                   // std::string or String, depending on the ESP32 core version
+    for (size_t i = 0; i < v.length(); i++) rxBuf += (char)v[i];
+    int nl;
+    while ((nl = rxBuf.indexOf('\n')) >= 0) {
+      String line = rxBuf.substring(0, nl); rxBuf = rxBuf.substring(nl + 1);
+      line.trim();
+      if (line.startsWith("@SMS,") && inboxN < 4) inbox[inboxN++] = line;
+    }
+    if (rxBuf.length() > 400) rxBuf = "";                     // garbage: start over
+  }
+};
+
+void startBluetooth() {
+  BLEDevice::init(NODE_ID);
+  BLEDevice::setMTU(247);
+  BLEServer* server = BLEDevice::createServer();
+  server->setCallbacks(new LinkCallbacks());
+  BLEService* svc = server->createService(NUS_SERVICE);
+  txChar = svc->createCharacteristic(NUS_TX, BLECharacteristic::PROPERTY_NOTIFY);
+  txChar->addDescriptor(new BLE2902());
+  BLECharacteristic* rx = svc->createCharacteristic(NUS_RX, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
+  rx->setCallbacks(new RxCallbacks());
+  svc->start();
+  BLEAdvertising* adv = BLEDevice::getAdvertising();
+  adv->addServiceUUID(NUS_SERVICE);
+  adv->setScanResponse(true);
+  BLEDevice::startAdvertising();
+  Serial.printf("[BT] advertising as '%s'\n", NODE_ID);
+}
+
+// "@SMS,poacher,<text>" from the PC -> send the text by GSM, tell the PC how it went.
+void handleCommand(const String& line) {
+  int c1 = line.indexOf(',', 5);
+  if (c1 < 0) return;
+  String kind = line.substring(5, c1), text = line.substring(c1 + 1);
+  Serial.printf("[PC] %s alert: %s\n", kind.c_str(), text.c_str());
+  int r = textAll(kind == "gunshot" ? 2 : 1, text);
+  bleSend(String("@SMS,") + (r > 0 ? "ok" : r < 0 ? "skipped" : "fail") + "," + kind + "\n");
 }
 
 void setup() {
   Serial.begin(115200);
   pinMode(PIN_FLAME, INPUT_PULLUP);             // pull-up: an unplugged wire reads "no flame"
+  Serial.println("\n== POACHER GUARD sensor node ==");
   gsm.begin(GSM_BAUD, SERIAL_8N1, GSM_RX, GSM_TX);
   delay(3000);                                  // let the GSM module start
   gsmReady = gsmInit();
-  connectWifi();
+  startBluetooth();
   if (TEXT_ON_BOOT && gsmReady)
     for (int i = 0; i < N_PHONES; i++) sendSms(PHONES[i], String("POACHER GUARD | NODE: ") + NODE_ID + " online | text alerts active");
+  Serial.println("[SYSTEM] ready");
 }
 
 void loop() {
   unsigned long now = millis();
 
   // flame sensor on D18
-  bool flame = (digitalRead(PIN_FLAME) == LOW) == FLAME_ACTIVE_LOW;
+  int raw = digitalRead(PIN_FLAME);
+  bool flame = (raw == LOW) == FLAME_ACTIVE_LOW;
   hot = flame ? hot + 1 : 0;
   bool fire = hot >= CONFIRM_READS;
+  if (now - lastPrint >= 1000) {
+    lastPrint = now;
+    Serial.printf("[FLAME] GPIO18=%d %s | PC link %s | GSM %s\n", raw, flame ? "FLAME" : "clear",
+                  bleConnected ? "connected" : "waiting", gsmReady ? "ready" : "NOT ready");
+  }
   if (fire != lastFire) {
-    Serial.printf("[FLAME] %s\n", fire ? "FIRE" : "clear");
-    if (fire) textAll(0, String("THREAT: FIRE - flame detected | NODE: ") + NODE_ID + " | check the area now");
-    connectWifi(); postFlame(fire);
     lastFire = fire;
-  } else if (now - lastFlamePost >= (fire ? 3000UL : 10000UL)) {
-    connectWifi(); postFlame(fire);             // heartbeat: dashboard shows the node online
+    Serial.printf("[FLAME] %s\n", fire ? "FIRE" : "clear");
+    bleSend(String("@FLAME,") + (fire ? "1" : "0") + "\n");               // tell the PC first: the text below takes seconds
+    if (fire) textAll(0, String("THREAT: FIRE - flame detected | NODE: ") + NODE_ID + " | check the area now");
+    lastBeat = millis();
   }
 
-  // laptop alerts (poacher, gunshot) -> SMS
-  if (now - lastPoll >= 2000) { lastPoll = now; connectWifi(); pollAlerts(); }
+  // tell the PC who we are and what we see: on connect, then as a heartbeat
+  if (sendHello || now - lastHello >= 20000) {
+    sendHello = false; lastHello = now;
+    bleSend(String("@HELLO,") + NODE_ID + ",gsm=" + (gsmReady ? "1" : "0") + "\n");
+    bleSend(String("@FLAME,") + (fire ? "1" : "0") + "\n");
+    lastBeat = now;
+  } else if (now - lastBeat >= (fire ? 3000UL : 5000UL)) {
+    lastBeat = now;
+    bleSend(String("@FLAME,") + (fire ? "1" : "0") + "\n");
+  }
+
+  // texts the PC asked for
+  while (inboxN > 0) {
+    String line = inbox[0];
+    for (int i = 1; i < inboxN; i++) inbox[i - 1] = inbox[i];
+    inboxN--;
+    handleCommand(line);
+  }
 
   // GSM not ready at start? try again every 30 s
   if (!gsmReady && now - lastGsmCheck >= 30000) { lastGsmCheck = now; gsmReady = gsmInit(); }

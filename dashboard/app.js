@@ -246,7 +246,7 @@ function dlgSelf() {
     const s = status, sy = s.system;
     $("m-body").innerHTML = `<div class="chipset"><span class="badge">Base</span></div><div class="kv"><div>
       <div class="row"><span>Site</span><b>${esc(s.site.name)}</b></div><div class="row"><span>Position</span><b>${s.site.lat}, ${s.site.lon}</b></div><div class="row"><span>Uptime</span><b>${dur(sy.uptime_s)}</b></div></div>
-      <div><div class="row"><span>Camera</span><b>${s.vision.running ? s.vision.fps + " fps" : "off"}</b></div><div class="row"><span>Microphone</span><b>${s.audio.running ? "listening" : "off"}</b></div><div class="row"><span>BLE scanner</span><b>${s.ble.running ? "scanning" : "off"}</b></div></div></div>
+      <div><div class="row"><span>Camera</span><b>${s.vision.running ? s.vision.fps + " fps" : "off"}</b></div><div class="row"><span>Microphone</span><b>${s.audio.running ? "listening" : "off"}</b></div><div class="row"><span>BLE scanner</span><b>${s.ble.running ? "scanning" : "off"}</b></div><div class="row"><span>Sensor node link</span><b>${s.node_link && s.node_link.running ? "connected (" + esc(s.node_link.mode) + ")" : esc((s.node_link && s.node_link.error) || "off")}</b></div></div></div>
       <button class="btn" id="open-cam">Open live camera</button>`;
     $("open-cam").onclick = dlgVideo;
   }, lastClick);

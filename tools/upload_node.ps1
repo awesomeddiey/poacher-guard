@@ -1,7 +1,7 @@
-# Poacher Guard - program the ESP32 flame + SMS node (run through UPLOAD-ESP32-NODE.bat).
+# Poacher Guard - program the ESP32 flame + SMS node (run through UPLOAD-ESP32-NODE.bat). Close Poacher Guard first if it is running.
 #   * downloads arduino-cli into tools\arduino-cli and the ESP32 board package (once, about 300 MB)
-#   * asks for Wi-Fi, phone number(s) and node name (remembered in tools\node-settings.json, which is not uploaded to GitHub)
-#   * fills in this PC's address, finds the ESP32's COM port, compiles and uploads firmware\flame_gsm_node
+#   * asks for the phone number(s) and node name (remembered in tools\node-settings.json, which is not uploaded to GitHub)
+#   * finds the ESP32's COM port, compiles and uploads firmware\flame_gsm_node (the node uses Bluetooth, no Wi-Fi settings)
 $ErrorActionPreference = 'Continue'
 $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
@@ -38,26 +38,15 @@ if ($cores -notmatch 'esp32:esp32') {
 # ---- 2. settings ---------------------------------------------------------------
 Say 'Node settings (press Enter to keep the value in brackets)'
 $setFile = Join-Path $PSScriptRoot 'node-settings.json'
-$s = @{ ssid = ''; password = ''; phones = ''; node = 'SIM8008' }
-if (Test-Path $setFile) { $j = Get-Content $setFile -Raw | ConvertFrom-Json; foreach ($k in 'ssid', 'password', 'phones', 'node') { if ($j.$k) { $s[$k] = $j.$k } } }
-if (-not $s.ssid) {
-    $line = (netsh wlan show interfaces) | Select-String '^\s*SSID\s*:' | Select-Object -First 1
-    if ($line) { $s.ssid = ($line.ToString() -split ':', 2)[1].Trim() }
-}
-$s.ssid = AskDefault 'Wi-Fi name (the same Wi-Fi as this PC)' $s.ssid
-$pw = Read-Host "Wi-Fi password$(if ($s.password) { ' [keep saved password]' })"
-if ($pw -ne '') { $s.password = $pw }
+$s = @{ phones = ''; node = 'SIM8008' }
+if (Test-Path $setFile) { $j = Get-Content $setFile -Raw | ConvertFrom-Json; foreach ($k in 'phones', 'node') { if ($j.$k) { $s[$k] = $j.$k } } }
 $s.phones = AskDefault 'Phone number(s) to text, comma separated (e.g. 0772109787)' $s.phones
-$s.node = AskDefault 'Node name shown in the texts' $s.node
-if (-not $s.ssid -or -not $s.phones) { Fail 'Wi-Fi name and at least one phone number are needed.' }
+$s.node = AskDefault 'Node name (also its Bluetooth name; keep it the same as node_link.node_id in config.yaml)' $s.node
+if (-not $s.phones) { Fail 'At least one phone number is needed.' }
 $s | ConvertTo-Json | Set-Content $setFile -Encoding ASCII
 
-$ip = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi' -ErrorAction SilentlyContinue | Select-Object -First 1).IPAddress
-if (-not $ip) { $ip = AskDefault 'Could not read this PC''s Wi-Fi address. Type it' '192.168.1.100' }
-Write-Host "This PC (Poacher Guard server): http://${ip}:8000"
-
 function CStr($v) { return '"' + ($v -replace '\\', '\\' -replace '"', '\"') + '"' }
-function SetLine($code, $pattern, $line) { return ($code -replace $pattern, $line.Replace('$', '$$')) }     # $ in a password stays literal
+function SetLine($code, $pattern, $line) { return ($code -replace $pattern, $line.Replace('$', '$$')) }
 $phones = @()
 foreach ($p in ($s.phones -split ',')) {
     $p = ($p -replace '[^\d+]', '')
@@ -70,9 +59,6 @@ $src = Join-Path $Root 'firmware\flame_gsm_node\flame_gsm_node.ino'
 $build = Join-Path $env:TEMP 'poacher_guard_build\flame_gsm_node'
 New-Item -ItemType Directory -Force $build | Out-Null
 $code = Get-Content $src -Raw
-$code = SetLine $code '(?m)^const char\* WIFI_SSID = .*$' ('const char* WIFI_SSID = ' + (CStr $s.ssid) + ';')
-$code = SetLine $code '(?m)^const char\* WIFI_PASS = .*$' ('const char* WIFI_PASS = ' + (CStr $s.password) + ';')
-$code = SetLine $code '(?m)^const char\* SERVER    = .*$' ('const char* SERVER    = ' + (CStr "http://${ip}:8000") + ';')
 $code = SetLine $code '(?m)^const char\* NODE_ID   = .*$' ('const char* NODE_ID   = ' + (CStr $s.node) + ';')
 $code = SetLine $code '(?m)^const char\* PHONES\[\] = .*$' ('const char* PHONES[] = {' + ($phones -join ', ') + '};')
 Set-Content (Join-Path $build 'flame_gsm_node.ino') $code -Encoding ASCII
@@ -107,13 +93,13 @@ Write-Host "ESP32 on $port"
 
 # ---- 5. compile + upload ----------------------------------------------------------------
 Say 'Compiling'
-& $cli compile --fqbn esp32:esp32:esp32 $build
+& $cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app $build
 if ($LASTEXITCODE -ne 0) { Fail 'compile error (shown above). Send the red lines to whoever maintains the project.' }
 Say "Uploading to $port (if it stays on 'Connecting...', hold the BOOT button on the ESP32)"
-& $cli upload -p $port --fqbn esp32:esp32:esp32 $build
+& $cli upload -p $port --fqbn esp32:esp32:esp32:PartitionScheme=huge_app $build
 if ($LASTEXITCODE -ne 0) { Fail 'upload failed. Close the Arduino IDE / Serial Monitor if open, hold BOOT while it connects, and try again.' }
 Write-Host ''
-Write-Host "Done. The node '$($s.node)' texts $($phones -join ', ') and reports to http://${ip}:8000" -ForegroundColor Green
-Write-Host 'Keep Poacher Guard running on this PC so poacher alerts reach the node.'
+Write-Host "Done. The node '$($s.node)' texts $($phones -join ', ') when it sees fire, by itself." -ForegroundColor Green
+Write-Host 'For poacher and gunshot texts keep Poacher Guard running on a PC with Bluetooth near the node: it connects by itself (no cable, no Wi-Fi).'
 $m = Read-Host 'Open the serial monitor to watch the node start (GSM, Wi-Fi, flame)? [Y/n]'
 if ($m -eq '' -or $m -match '^[Yy]') { Write-Host 'Press Ctrl+C to stop watching.'; & $cli monitor -p $port -c baudrate=115200 }

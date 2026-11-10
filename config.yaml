@@ -145,3 +145,15 @@ notify:
     enabled: false
     bot_token: ""
     chat_id: ""
+
+# ESP32 sensor node (firmware/flame_gsm_node): flame sensor + GSM texts. It works on its own (fire texts need no PC);
+# it links to this PC only to receive poacher / gunshot alerts to text, and to show up on the dashboard.
+node_link:
+  mode: ble           # ble = Bluetooth, no cable and no Wi-Fi (default) | usb = cable | off
+  node_id: SIM8008    # must match flame.nodes[].id above and NODE_ID in the sketch
+  ble:
+    name: ""          # Bluetooth name the node advertises; empty = node_id
+    silent_after_s: 20  # reconnect when the node has said nothing for this long
+  usb:
+    port: auto        # auto = find the ESP32 (CP210x / CH340 / FTDI chip), or e.g. COM5
+    baud: 115200
