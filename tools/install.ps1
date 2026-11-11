@@ -5,6 +5,8 @@
 #   * desktop shortcuts, an optional firewall rule for port 8000, then starts Poacher Guard
 # Re-running it is safe: finished steps are skipped. A log is written to install.log.
 param([switch]$Unattended, [switch]$NoStart)
+if ($env:PG_UNATTENDED) { $Unattended = $true }     # automatic test runs (GitHub Actions)
+if ($env:PG_NOSTART) { $NoStart = $true }
 
 $ErrorActionPreference = 'Continue'
 $Root = Split-Path $PSScriptRoot -Parent

@@ -69,7 +69,7 @@ def test_ble_link_flame_text_and_reconnect(monkeypatch):
     node = {"visible": True, "written": [], "script": script}
     install_fake_bleak(monkeypatch, node)
     eng = FakeEngine()
-    w = BleNodeWorker({"silent_after_s": 20}, eng, "SIM8008")
+    w = BleNodeWorker({"silent_after_s": 20}, eng, "SIM8008", phones=lambda: ["+263772109787"])
     w.start()
     try:
         assert wait_until(lambda: w.status["running"]), w.status
@@ -80,7 +80,9 @@ def test_ble_link_flame_text_and_reconnect(monkeypatch):
         assert w.send_sms("poacher", text)
         assert wait_until(lambda: b"".join(node["written"]).endswith(b"31.05220\n"))
         sent = b"".join(node["written"]).decode()
-        assert sent == f"@SMS,poacher,{text}\n" and all(len(p) <= CHUNK for p in node["written"])
+        assert sent == f"@PHONES,+263772109787\n@SMS,poacher,{text}\n"          # numbers first, on connect
+        assert all(len(p) <= CHUNK for p in node["written"])
+        assert w.test_sms() and wait_until(lambda: b"".join(node["written"]).endswith(b"@TEST\n"))
 
         node["client"].cb(node["client"])                            # the link drops
         assert wait_until(lambda: not w.status["running"] or w.status["error"])

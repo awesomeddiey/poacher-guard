@@ -1,0 +1,39 @@
+# Builds the ESP32 sensor node program every time the sketch changes and commits the ready-to-flash file
+# (firmware/build/flame_gsm_node.ino.merged.bin). The dashboard's "Set up node" button writes that file to the ESP32,
+# and the auto-update brings it to every PC, so nobody needs the Arduino tools.
+name: firmware
+on:
+  push:
+    branches: [main]
+    paths: ["firmware/flame_gsm_node/**", ".github/workflows/firmware.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: firmware, cancel-in-progress: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: ESP32 board package
+        run: |
+          URL=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls $URL
+          arduino-cli core install esp32:esp32 --additional-urls $URL
+          arduino-cli core list
+      - name: Compile
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app --warnings default \
+            --export-binaries --output-dir out firmware/flame_gsm_node
+          ls -la out
+          cp out/flame_gsm_node.ino.merged.bin firmware/build/
+          { echo "built from commit $GITHUB_SHA"; arduino-cli core list | grep esp32; date -u; } > firmware/build/BUILD.txt
+      - name: Commit the binary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add firmware/build
+          git diff --cached --quiet && echo "binary unchanged" && exit 0
+          git commit -m "Build sensor node firmware [skip ci]"
+          git pull --rebase origin main && git push origin HEAD:main

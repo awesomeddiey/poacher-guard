@@ -1,0 +1,53 @@
+# Does what a new user does, on a clean Windows machine: GET-POACHER-GUARD.bat downloads the project from GitHub and
+# installs it, then the tests run and the dashboard is started and checked. Catches installer breakage before anyone
+# downloads it.
+name: windows-install
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "enclosures/**", "firmware/build/**", "experiments/**", "results/**"]
+  workflow_dispatch:
+concurrency: { group: windows-install, cancel-in-progress: true }
+jobs:
+  install:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PG_UNATTENDED: "1"
+      PG_NOSTART: "1"
+    steps:
+      - name: One-click install exactly as a user would (GET-POACHER-GUARD.bat)
+        shell: cmd
+        run: |
+          curl -L -o "%TEMP%\GET-POACHER-GUARD.bat" https://raw.githubusercontent.com/awesomeddiey/poacher-guard/%GITHUB_SHA%/GET-POACHER-GUARD.bat
+          (echo.&echo.&echo.) | call "%TEMP%\GET-POACHER-GUARD.bat"
+          if not exist "%USERPROFILE%\poacher-guard\.venv\Scripts\python.exe" exit /b 1
+      - name: Desktop shortcuts exist
+        shell: pwsh
+        run: |
+          $d = [Environment]::GetFolderPath('Desktop'); Get-ChildItem $d -Filter 'Poacher Guard*.lnk' | Select-Object Name
+          if (-not (Test-Path "$d\Poacher Guard.lnk")) { throw 'desktop shortcut missing' }
+      - name: Tests on Windows
+        shell: pwsh
+        run: |
+          cd $env:USERPROFILE\poacher-guard
+          .\.venv\Scripts\python.exe -m pytest -q tests
+      - name: Start the dashboard and check it answers
+        shell: pwsh
+        run: |
+          cd $env:USERPROFILE\poacher-guard
+          $p = Start-Process .\.venv\Scripts\python.exe -ArgumentList 'run.py' -PassThru -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+          $ok = $false
+          for ($i = 0; $i -lt 120 -and -not $ok; $i++) { try { $s = Invoke-RestMethod http://localhost:8000/api/status -TimeoutSec 2; $ok = $true } catch { Start-Sleep 1 } }
+          if (-not $ok) { Get-Content err.txt -Tail 40; throw 'dashboard did not start' }
+          $s | ConvertTo-Json -Depth 4 | Select-Object -First 60
+          $page = Invoke-WebRequest http://localhost:8000/ -UseBasicParsing
+          if ($page.Content -notmatch 'SMS alerts') { throw 'dashboard page incomplete' }
+          $set = Invoke-RestMethod http://localhost:8000/api/settings -Method Post -ContentType 'application/json' -Body '{"phones":"0772109787"}'
+          if ($set.phones[0] -ne '0772109787') { throw 'saving the phone number failed' }
+          Stop-Process $p.Id
+      - name: Updater runs
+        shell: pwsh
+        run: |
+          cd $env:USERPROFILE\poacher-guard
+          .\.venv\Scripts\python.exe tools\update.py --skip run-poacher-guard.bat

@@ -5,6 +5,7 @@ ultralytics>=8.3
 ai-edge-litert>=1.0
 sounddevice>=0.4.6
 bleak>=0.22
+esptool>=4.7,<6
 pyserial>=3.5
 numpy
 scipy

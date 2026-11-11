@@ -5,7 +5,9 @@
 1. Get the project: double-click **`GET-POACHER-GUARD.bat`** (downloads it into your user folder), or copy the project folder from a USB stick.
 2. Double-click **`INSTALL.bat`**. It installs Python 3.12, the Microsoft C++ runtime if missing, all packages and two desktop icons, opens port 8000 for phones and the ESP32 (asks first), and starts Poacher Guard. About 10 minutes and 1 GB of downloads, once.
 3. From then on: the **Poacher Guard** icon on the desktop. The dashboard opens at http://localhost:8000.
-4. ESP32 flame + SMS node: plug it in by USB once and use the **Poacher Guard - upload ESP32 node** icon (or `UPLOAD-ESP32-NODE.bat`). It asks for the phone number(s) and node name, finds the COM port and uploads. After that the node is **stand-alone**: it texts fire by itself and talks to this PC over **Bluetooth** (no cable, no Wi-Fi, no pairing) to get poacher and gunshot alerts to text. Check the link with `python check_setup.py --node`.
+4. **SMS number:** type it on the dashboard in the **SMS alerts & sensor node** card (format `0772109787`, several separated by commas) and press Save. **Send test SMS** checks it.
+5. **ESP32 node:** plug it in by USB once and press **Set up node (USB)** on the dashboard (or double-click `UPLOAD-ESP32-NODE.bat`). It writes the ready-made program in about 30 seconds; no Arduino tools needed. Then unplug it: the node is **stand-alone**, texts fire by itself, and talks to this PC over **Bluetooth** (no cable, no Wi-Fi, no pairing) to get the number and the poacher / gunshot alerts.
+6. **Gunshot tuning:** the **Gunshot detection** card has live meters for what the microphone hears and a slider for each threshold; changes apply at once.
 
 Laptop-based anti-poaching detection: **webcam person detector + microphone gunshot detector + BLE ranger-tag check + ESP32 flame sensor**, all feeding one **live web dashboard**.
 

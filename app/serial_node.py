@@ -20,7 +20,7 @@ import threading
 import time
 from typing import Any
 
-from .node_protocol import NodeProtocolMixin, ascii_line, new_status
+from .node_protocol import NodeProtocolMixin, new_status, phones_line
 
 log = logging.getLogger("node-usb")
 
@@ -29,8 +29,9 @@ ESP_VIDS = {0x10C4, 0x1A86, 0x303A, 0x0403, 0x067B}
 
 
 class SerialNodeWorker(NodeProtocolMixin, threading.Thread):
-    def __init__(self, cfg: dict[str, Any], engine, node_id: str):
+    def __init__(self, cfg: dict[str, Any], engine, node_id: str, phones=lambda: []):
         super().__init__(daemon=True, name="node-usb")
+        self.phones = phones
         self.cfg, self.engine, self.node_id = cfg, engine, node_id
         self._stop_evt = threading.Event()
         self._ser = None
@@ -75,15 +76,13 @@ class SerialNodeWorker(NodeProtocolMixin, threading.Thread):
         s.close()
         return None
 
-    def send_sms(self, kind: str, text: str) -> bool:
-        """Ask the node to text `text`. Returns False when the cable is not connected."""
+    def send_raw(self, line: bytes) -> bool:
         s = self._ser
         if not s or not self.status["running"]:
             return False
         try:
             with self._wlock:
-                s.write(ascii_line(kind, text))
-            self.status["texts_asked"] += 1
+                s.write(line)
             return True
         except Exception:  # noqa: BLE001
             log.exception("could not write to the node")
@@ -116,6 +115,7 @@ class SerialNodeWorker(NodeProtocolMixin, threading.Thread):
                 continue
             self._ser = ser
             self.status.update(running=True, error=None)
+            self.send_raw(phones_line(self.phones()))
             log.info("ESP32 node on %s", self.status["port"])
             try:
                 while not self._stop_evt.is_set():

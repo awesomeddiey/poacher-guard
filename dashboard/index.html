@@ -33,6 +33,7 @@
   </header>
 
   <section id="hero"></section>
+  <div id="setup-banner" hidden>No SMS number set yet: alerts will not be texted. Click here to enter one (format 0772109787).</div>
   <section id="kpis"></section>
 
   <section class="grid">
@@ -55,6 +56,49 @@
         <span><b class="k me"></b>This node</span><span><b class="k on"></b>Online</span>
         <span><b class="k off"></b>Offline</span><span><b class="k bad"></b>Alert</span>
       </div>
+    </article>
+  </section>
+
+  <section class="grid" id="setup">
+    <article class="card" id="smscard">
+      <div class="card-h"><h2>SMS alerts &amp; sensor node</h2><span class="sub" id="node-sub"></span></div>
+      <label class="fl" for="phones">Phone number(s) that get the alert texts</label>
+      <div class="inrow">
+        <input id="phones" type="text" inputmode="tel" placeholder="0772109787" autocomplete="off">
+        <button class="pri" id="save-phones">Save</button>
+      </div>
+      <p class="hint">Format <b>0772109787</b>. Several numbers: separate with commas (max 5). They are sent to the node over Bluetooth and kept on it, so fire texts work even with this PC off.</p>
+      <p class="msg" id="sms-msg"></p>
+      <div id="node-rows"></div>
+      <div class="inrow btns">
+        <button class="ghost" id="test-sms">Send test SMS</button>
+        <button class="ghost" id="flash-node">Set up node (USB)</button>
+      </div>
+      <div class="prog" id="flash-prog" hidden><i></i></div>
+      <p class="msg" id="flash-msg"></p>
+      <p class="hint ro" id="setup-ro" hidden>Settings can only be changed on the PC running Poacher Guard (open http://localhost:8000 there).</p>
+    </article>
+    <article class="card" id="guncard">
+      <div class="card-h"><h2>Gunshot detection</h2><span class="sub">changes apply at once</span><button class="ghost" id="gun-reset">Reset</button></div>
+      <label class="fl" for="g-detector">Detector</label>
+      <select id="g-detector">
+        <option value="either">AI model or loud bang (recommended)</option>
+        <option value="model">AI model only (fewest false alarms)</option>
+        <option value="loudness">Loud bang only (catches played-back shots, but also claps and slams)</option>
+      </select>
+      <div class="tune" data-k="threshold"><div class="tl"><span>AI gunshot threshold</span><b></b></div>
+        <input type="range" min="0.05" max="0.95" step="0.01"><div class="meter"><i></i><u></u></div>
+        <p class="hint">Bar = what the AI hears now (peak). An alert fires when it reaches the line. Lower = more sensitive.</p></div>
+      <div class="tune" data-k="min_db"><div class="tl"><span>Loud bang: how loud</span><b></b></div>
+        <input type="range" min="-50" max="-3" step="1"><div class="meter"><i></i><u></u></div>
+        <p class="hint">Bar = loudest sound now. Set the line above loud talking near the node and below a shot.</p></div>
+      <div class="tune" data-k="rise_db"><div class="tl"><span>Loud bang: louder than the room by</span><b></b></div>
+        <input type="range" min="5" max="45" step="1"><div class="meter"><i></i><u></u></div></div>
+      <div class="tune" data-k="voice_veto"><div class="tl"><span>Ignore bangs that sound like a voice</span><b></b></div>
+        <input type="range" min="0.05" max="1.01" step="0.01"><div class="meter"><i></i><u></u></div>
+        <p class="hint">Bar = how much the sound is a voice. A bang is ignored when the bar reaches the line. Far right = never ignore.</p></div>
+      <p class="hint" id="gun-live"></p>
+      <p class="msg" id="gun-msg"></p>
     </article>
   </section>
 

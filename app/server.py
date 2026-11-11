@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import cv2
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -22,6 +22,8 @@ from pydantic import BaseModel
 from .ble_registry import RangerRegistry
 from .config import ROOT, load_config, resolve
 from .engine import AlertEngine
+from .flasher import Flasher
+from .settings import Settings
 from .notify import telegram_sender
 from .store import EventStore
 
@@ -95,6 +97,15 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
 
     engine = AlertEngine(cfg, store, registry, publish=publish, save_snapshot=save_snapshot)
     workers: dict[str, Any] = {}
+    # dashboard settings (SMS numbers, gunshot tuning) live next to the event database, outside git
+    settings = Settings(resolve(cfg["storage"]["db_path"]).parent / "settings.json", cfg)
+    flasher = Flasher()
+
+    def _push_phones(data: dict[str, Any]) -> None:
+        link = workers.get("node_link")
+        if link:
+            link.push_phones(data["phones"])
+    settings.on_change(_push_phones)
     started = time.time()
 
     @asynccontextmanager
@@ -106,7 +117,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
                 workers["vision"] = VisionWorker(cfg, engine)
             if cfg["audio"].get("enabled", True):
                 from .audio import AudioWorker
-                workers["audio"] = AudioWorker(cfg, engine)
+                workers["audio"] = AudioWorker(cfg, engine, settings)
             if cfg["ble"].get("enabled", True):
                 from .ble_scanner import BleWorker
                 workers["ble"] = BleWorker(registry, publish)
@@ -114,10 +125,10 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             node_id = nl.get("node_id") or (cfg["flame"]["nodes"] or [{"id": "SIM8008"}])[0]["id"]
             if nl.get("mode", "ble") == "ble":
                 from .ble_node import BleNodeWorker
-                workers["node_link"] = BleNodeWorker(nl.get("ble", {}), engine, node_id)
+                workers["node_link"] = BleNodeWorker(nl.get("ble", {}), engine, node_id, phones=lambda: settings.phones)
             elif nl.get("mode") == "usb":
                 from .serial_node import SerialNodeWorker
-                workers["node_link"] = SerialNodeWorker(nl.get("usb", {}), engine, node_id)
+                workers["node_link"] = SerialNodeWorker(nl.get("usb", {}), engine, node_id, phones=lambda: settings.phones)
             for w in workers.values():
                 w.start()
         yield
@@ -144,6 +155,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
                 "site": cfg["site"], "vision": w("vision"), "audio": w("audio"), "ble": w("ble"), "node_link": w("node_link"),
                 "rangers": registry.status(), "verdict": engine.verdict, "nodes": engine.node_status(),
                 "simulation": bool(cfg["server"].get("allow_simulation", False)),
+                "sms_phones": len(settings.phones), "flash": dict(flasher.status),
                 "counts_24h": store.counts_since(time.time() - 86400)}
 
     @app.get("/api/status")
@@ -161,6 +173,49 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         tail = (f" | NODE: {name} | {time.strftime('%H:%M', time.localtime(e['ts']))}"
                 f" | maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
         return "THREAT: " + title[:160 - len("THREAT: ") - len(tail)] + tail
+
+    # ---- settings from the dashboard (only on this PC: other devices on the network can look, not change) ----
+    def _local(request: Request) -> bool:
+        host = request.client.host if request.client else ""
+        return host in ("127.0.0.1", "::1", "localhost") or bool(cfg["server"].get("settings_from_any_device", False))
+
+    def _require_local(request: Request) -> None:
+        if not _local(request):
+            raise HTTPException(403, "Settings can only be changed on the PC running Poacher Guard (open http://localhost:8000 there).")
+
+    @app.get("/api/settings")
+    def get_settings(request: Request):
+        return {**settings.public(), "can_edit": _local(request)}
+
+    @app.post("/api/settings")
+    def set_settings(request: Request, patch: dict = Body(...)):
+        _require_local(request)
+        try:
+            out = settings.update(patch)
+        except (ValueError, TypeError) as e:
+            raise HTTPException(400, str(e))
+        link = workers.get("node_link")
+        return {**out, "can_edit": True, "node_updated": bool(link and link.status.get("running"))}
+
+    @app.post("/api/node/test-sms")
+    def node_test_sms(request: Request):
+        _require_local(request)
+        if not settings.phones:
+            raise HTTPException(400, "Set a phone number first.")
+        link = workers.get("node_link")
+        if not (link and link.status.get("running")):
+            raise HTTPException(409, "The sensor node is not connected. Power it on and keep it within Bluetooth range of this PC.")
+        link.push_phones(settings.phones)
+        link.test_sms()
+        return {"ok": True, "message": f"Asked the node to text {', '.join(settings.public()['phones'])}. It takes up to 30 seconds."}
+
+    @app.post("/api/node/flash")
+    def node_flash(request: Request):
+        _require_local(request)
+        link = workers.get("node_link")
+        usb = link is not None and getattr(link, "status", {}).get("mode") == "usb"
+        # a USB link holds the serial port: release it while writing (the Bluetooth link needs nothing)
+        return flasher.start(before=(lambda: link.stop()) if usb else None)
 
     @app.get("/api/sms", response_class=PlainTextResponse)
     def sms_feed(after: int = -1, types: str = "poacher,gunshot", node: str = ""):

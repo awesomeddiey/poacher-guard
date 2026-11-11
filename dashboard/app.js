@@ -171,6 +171,7 @@ function renderAll() {
   const sb = $("sound"); sb.dataset.i = soundOn ? "sound" : "mute"; sb.classList.toggle("live", soundOn); sb.innerHTML = icon(sb.dataset.i);
   renderMap();
   if (openView && openView.update) openView.update();
+  renderSetup();
 }
 
 function renderFeed() {
@@ -360,6 +361,98 @@ function gunPopup(e) {
   t.el.classList.remove("bump"); void t.el.offsetWidth; t.el.classList.add("bump");
   clearTimeout(t.timer); t.timer = setTimeout(t.close, 20000);
 }
+
+/* ---------- setup: SMS numbers, sensor node, gunshot tuning ---------- */
+let cfgS = null;
+const TUNE = {   // how each slider is shown, and the live value its meter tracks (from status.audio)
+  threshold: { fmt: (v) => v.toFixed(2), live: (a) => a.peak ?? a.score ?? 0 },
+  min_db: { fmt: (v) => `${Math.round(v)} dB`, live: (a) => a.loud_db ?? -120 },
+  rise_db: { fmt: (v) => `+${Math.round(v)} dB`, live: (a) => a.loud_rise ?? 0 },
+  voice_veto: { fmt: (v) => (v > 1 ? "never" : v.toFixed(2)), live: (a) => a.voice ?? 0 },
+};
+const pct = (v, lo, hi) => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+function setMsg(id, text, ok) { const e = $(id); e.textContent = text || ""; e.className = "msg" + (text ? (ok ? " ok" : " bad") : ""); }
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+  return j;
+}
+async function loadSettings() {
+  try { cfgS = await api("/api/settings"); fillSettings(); } catch (e) { setMsg("sms-msg", "Could not load settings: " + e.message, false); }
+}
+function fillSettings() {
+  $("phones").value = cfgS.phones.join(", ");
+  $("g-detector").value = cfgS.gunshot.detector;
+  document.querySelectorAll(".tune").forEach((t) => {
+    const k = t.dataset.k, inp = t.querySelector("input");
+    inp.value = cfgS.gunshot[k]; t.querySelector("b").textContent = TUNE[k].fmt(+inp.value);
+  });
+  $("setup-ro").hidden = cfgS.can_edit;
+  document.querySelectorAll("#setup input, #setup select, #setup button").forEach((e) => (e.disabled = !cfgS.can_edit));
+  renderSetup();
+}
+function renderSetup() {
+  if (!status || !cfgS) return;
+  const a = status.audio || {}, nl = status.node_link || {}, f = status.flash || {};
+  document.querySelectorAll(".tune").forEach((t) => {
+    const k = t.dataset.k, inp = t.querySelector("input"), line = +inp.value, live = TUNE[k].live(a);
+    const lo = +inp.min, hi = +inp.max, bar = t.querySelector(".meter i");   // same scale as the slider: the line sits under the knob
+    bar.style.width = pct(live, lo, hi) + "%";
+    bar.classList.toggle("hot", !!a.running && live >= line);
+    t.querySelector(".meter u").style.left = `calc(${pct(line, lo, hi)}% - 1px)`;
+  });
+  const off = { model: ["min_db", "rise_db", "voice_veto"], loudness: ["threshold"], either: [] }[$("g-detector").value] || [];
+  document.querySelectorAll(".tune").forEach((t) => (t.style.opacity = off.includes(t.dataset.k) ? 0.4 : 1));
+  const lb = a.last_bang;
+  $("gun-live").textContent = !a.running ? `Microphone: ${a.error || "off"}`
+    : `Microphone: ${a.device || "on"}` + (lb ? ` · last loud bang ${lb.db} dB, +${lb.rise} dB, voice ${lb.voice}` : "") +
+      (a.bangs_ignored ? ` · ${a.bangs_ignored} ignored as voice` : "");
+  $("node-sub").textContent = nl.running ? "node connected" : "node not connected";
+  const rows = [
+    ["Sensor node", nl.running ? `connected (${esc(nl.mode)})` : esc(nl.error || "off")],
+    ["GSM", nl.gsm == null ? "-" : nl.gsm ? "ready" : "NOT ready (SIM, signal or power)"],
+    ["Numbers stored on the node", nl.phones_on_node == null ? "-" : String(nl.phones_on_node)],
+    ["Last text", nl.last_sms ? `${esc(nl.last_sms.kind)}: ${esc(nl.last_sms.result)}, ${ago(Date.now() / 1000 - nl.last_sms.ts)}` : "none yet"],
+  ];
+  $("node-rows").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${v}</b></div>`).join("");
+  const busy = ["finding", "writing"].includes(f.state);
+  $("flash-prog").hidden = !(busy || f.state === "done");
+  $("flash-prog").querySelector("i").style.width = (f.progress || 0) + "%";
+  if (f.state && f.state !== "idle") setMsg("flash-msg", f.message, f.state !== "error");
+  $("flash-node").disabled = !cfgS.can_edit || busy;
+  $("setup-banner").hidden = !!status.sms_phones;
+}
+$("save-phones").onclick = async () => {
+  try {
+    cfgS = { ...cfgS, ...(await api("/api/settings", { phones: $("phones").value })) }; fillSettings();
+    setMsg("sms-msg", cfgS.phones.length ? `Saved: ${cfgS.phones.join(", ")}` +
+      (status && status.node_link && status.node_link.running ? " - sent to the node" : " - the node gets it when it connects") : "Saved: no numbers", true);
+  } catch (e) { setMsg("sms-msg", e.message, false); }
+};
+$("phones").onkeydown = (e) => { if (e.key === "Enter") $("save-phones").click(); };
+$("test-sms").onclick = async () => {
+  try { setMsg("sms-msg", (await api("/api/node/test-sms", {})).message, true); } catch (e) { setMsg("sms-msg", e.message, false); }
+};
+$("flash-node").onclick = async () => {
+  if (!confirm("Plug the ESP32 into this PC with a USB data cable, then press OK. Writing takes about 30 seconds.")) return;
+  try { await api("/api/node/flash", {}); setMsg("flash-msg", "Starting...", true); } catch (e) { setMsg("flash-msg", e.message, false); }
+};
+async function saveGun(patch) {
+  try {
+    cfgS = { ...cfgS, ...(await api("/api/settings", patch)) }; fillSettings();
+    setMsg("gun-msg", "Saved", true); setTimeout(() => setMsg("gun-msg", ""), 2500);
+  } catch (e) { setMsg("gun-msg", e.message, false); }
+}
+$("g-detector").onchange = () => saveGun({ gunshot: { detector: $("g-detector").value } });
+document.querySelectorAll(".tune").forEach((t) => {
+  const k = t.dataset.k, inp = t.querySelector("input");
+  inp.oninput = () => { t.querySelector("b").textContent = TUNE[k].fmt(+inp.value); renderSetup(); };
+  inp.onchange = () => saveGun({ gunshot: { [k]: +inp.value } });
+});
+$("gun-reset").onclick = () => saveGun({ reset_gunshot: true });
+$("setup-banner").onclick = () => { $("smscard").scrollIntoView({ behavior: "smooth" }); $("phones").focus(); };
+loadSettings();
 
 /* ---------- live link ---------- */
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }, 1000);

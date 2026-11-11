@@ -183,11 +183,12 @@ def pick_microphone(want=None):
 class AudioWorker(threading.Thread):
     HOP = 0.5  # seconds between scored windows
 
-    def __init__(self, cfg: dict[str, Any], engine):
+    def __init__(self, cfg: dict[str, Any], engine, settings=None):
         super().__init__(daemon=True, name="audio")
         self.cfg = cfg["audio"]
         self.engine = engine
         self.cfg_all = cfg
+        self.settings = settings          # dashboard tuning (app.settings.Settings); read on every window
         self._stop = threading.Event()
         self.status = {"running": False, "level": 0.0, "score": 0.0, "error": None, "device": None, "peak": 0.0}
 
@@ -202,12 +203,16 @@ class AudioWorker(threading.Thread):
             self.status["error"] = f"audio init failed: {e}"
             log.exception("audio init failed")
             return
-        threshold = self.cfg.get("head_threshold", 0.99) if scorer.head else self.cfg.get("threshold", 0.35)
-        mode = self.cfg.get("detector", "either")          # model | loudness | either
         b = self.cfg.get("bang", {})
-        bang = BangDetector(b.get("min_db", -15), b.get("rise_db", 20), b.get("jump_db", 12)) if mode in ("loudness", "either") else None
+        bang = BangDetector(b.get("min_db", -20), b.get("rise_db", 15), b.get("jump_db", 0))
         bangs: list[dict[str, float]] = []
-        voice_veto = b.get("voice_veto", 0.3)
+        hop_peak = {"db": -120.0, "rise": 0.0}       # loudest 10 ms frame since the last window, for the tuning panel
+
+        def tuning() -> dict[str, Any]:
+            if self.settings is not None:
+                return self.settings.gunshot
+            return {"detector": self.cfg.get("detector", "either"), "threshold": self.cfg.get("threshold", 0.35),
+                    "min_db": b.get("min_db", -20), "rise_db": b.get("rise_db", 15), "voice_veto": b.get("voice_veto", 0.3)}
         recent_voice: list[float] = []      # voice score of the last few windows (about 1 s of context)
         dev, dev_name = pick_microphone(self.cfg.get("device"))
         ring = np.zeros(SR * 2, dtype=np.float32)
@@ -223,8 +228,9 @@ class AudioWorker(threading.Thread):
                 g = math.gcd(SR, int(rate)); x = resample_poly(x, SR // g, int(rate) // g).astype(np.float32)
             with lock:
                 ring = np.concatenate([ring, x])[-SR * 2:]
-                if bang is not None:
-                    bangs.extend(bang.feed(x))
+                bangs.extend(bang.feed(x))
+                if bang.last["db"] > hop_peak["db"]:
+                    hop_peak.update(db=bang.last["db"], rise=bang.last["rise"])
 
         def open_stream():
             nonlocal rate
@@ -242,13 +248,23 @@ class AudioWorker(threading.Thread):
                 self.status.update(running=True, error=None, device=dev_name)
                 while not self._stop.is_set():
                     time.sleep(self.HOP)
+                    t = tuning()
+                    mode = t["detector"]
+                    threshold = self.cfg.get("head_threshold", 0.99) if scorer.head else t["threshold"]
+                    bang.min_db, bang.rise_db = t["min_db"], t["rise_db"]
+                    voice_veto = t["voice_veto"]
                     with lock:
                         win = ring[-WIN:].copy()
                         found, bangs[:] = list(bangs), []
+                        self.status["loud_db"], self.status["loud_rise"] = round(hop_peak["db"], 1), round(hop_peak["rise"], 1)
+                        hop_peak.update(db=-120.0, rise=0.0)
+                    if mode == "model":
+                        found = []
                     self.status["level"] = float(np.sqrt(np.mean(win ** 2)))
                     score, label, voice_now = scorer.score_all(win)
                     recent_voice = (recent_voice + [voice_now])[-max(1, int(round(1.0 / self.HOP)) + 1):]
                     voice = max(recent_voice)       # a voice in the bang's window or the second before it
+                    self.status["voice"] = round(voice, 2)
                     if found:
                         top = max(found, key=lambda d: d["rise"])
                         self.status["last_bang"] = {**{k: round(v, 1) for k, v in top.items()}, "voice": round(voice, 2)}
