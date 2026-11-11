@@ -1,0 +1,8 @@
+{
+  "name": "Poacher Guard sensor node",
+  "version": "latest",
+  "new_install_prompt_erase": false,
+  "builds": [
+    { "chipFamily": "ESP32", "parts": [ { "path": "../firmware/build/flame_gsm_node.ino.merged.bin", "offset": 0 } ] }
+  ]
+}

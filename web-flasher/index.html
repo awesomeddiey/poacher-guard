@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poacher Guard - install the sensor node</title>
+<style>
+body{margin:0;background:#f3f6fc;color:#0e1d3a;font:16px/1.5 system-ui,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:40px auto;padding:0 16px}
+.card{background:#fff;border-radius:20px;padding:28px;box-shadow:0 8px 24px rgba(20,40,90,.08)}
+h1{font-size:24px;margin:0 0 6px}p{margin:8px 0}ol{padding-left:20px}li{margin:6px 0}
+.sub{color:#6b7a96}.warn{background:#fff7e6;border:1px solid #fde4b0;color:#92400e;border-radius:12px;padding:10px 14px;margin-top:16px}
+esp-web-install-button{display:block;margin:22px 0 6px}
+button[slot=activate]{background:#2563eb;color:#fff;border:0;border-radius:12px;padding:14px 26px;font:inherit;font-weight:700;cursor:pointer}
+code{background:#eff5ff;border-radius:6px;padding:1px 6px}
+</style>
+<script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
+</head><body><main><div class="card">
+<h1>Install the Poacher Guard sensor node</h1>
+<p class="sub">Writes the node program to an ESP32 (38-pin DevKit) straight from this page. About one minute.</p>
+<ol>
+<li>Use <b>Chrome or Edge on a computer</b> (not a phone).</li>
+<li>Plug the ESP32 into this computer with a USB <b>data</b> cable. Close the Arduino IDE and Serial Monitor.</li>
+<li>Click <b>Install</b>, pick the port named <code>CP210x</code>, <code>CH340</code> or <code>USB Serial</code>, then click Install again.</li>
+</ol>
+<esp-web-install-button manifest="manifest.json">
+  <button slot="activate">Install</button>
+  <span slot="unsupported"><b>This browser cannot do it.</b> Open this page in Chrome or Edge on a computer.</span>
+  <span slot="not-allowed"><b>Not allowed here.</b> Open this page directly (https), not inside another page.</span>
+</esp-web-install-button>
+<p class="sub">If it waits at "Connecting": hold the <b>BOOT</b> button on the ESP32 until it starts. No port in the list: install the CP210x or CH340 USB driver, or try another cable.</p>
+<div class="warn">After installing: unplug the ESP32 and power it normally. Start Poacher Guard on the PC, type the phone number in <b>SMS alerts &amp; sensor node</b>, press Save, then <b>Send test SMS</b>. The node connects over Bluetooth by itself.</div>
+</div></main></body></html>
