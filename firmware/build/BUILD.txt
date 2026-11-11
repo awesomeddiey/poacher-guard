@@ -1,0 +1,3 @@
+built from commit 5084a6abb072a8e86cab6a3db0a3eadb2f0e24d4
+esp32:esp32 3.3.12    3.3.12 esp32
+Wed Nov 11 10:57:02 UTC 2026
