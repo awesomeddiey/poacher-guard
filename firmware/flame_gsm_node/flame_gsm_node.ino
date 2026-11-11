@@ -160,7 +160,7 @@ class RxCallbacks : public BLECharacteristicCallbacks {
     while ((nl = rxBuf.indexOf('\n')) >= 0) {
       String line = rxBuf.substring(0, nl); rxBuf = rxBuf.substring(nl + 1);
       line.trim();
-      if ((line.startsWith("@SMS,") || line.startsWith("@PHONES,") || line == "@TEST") && inboxN < 4) inbox[inboxN++] = line;
+      if ((line.startsWith("@SMS,") || line.startsWith("@PHONES,") || line == "@TEST") && inboxN < 4) { inbox[inboxN] = line; inboxN = inboxN + 1; }
     }
     if (rxBuf.length() > 400) rxBuf = "";                     // garbage: start over
   }
@@ -262,7 +262,7 @@ void loop() {
   while (inboxN > 0) {
     String line = inbox[0];
     for (int i = 1; i < inboxN; i++) inbox[i - 1] = inbox[i];
-    inboxN--;
+    inboxN = inboxN - 1;
     handleCommand(line);
   }
 

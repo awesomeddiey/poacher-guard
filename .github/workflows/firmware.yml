@@ -27,7 +27,7 @@ jobs:
           arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app --warnings default \
             --export-binaries --output-dir out firmware/flame_gsm_node
           ls -la out
-          cp out/flame_gsm_node.ino.merged.bin firmware/build/
+          mkdir -p firmware/build && cp out/flame_gsm_node.ino.merged.bin firmware/build/
           { echo "built from commit $GITHUB_SHA"; arduino-cli core list | grep esp32; date -u; } > firmware/build/BUILD.txt
       - name: Commit the binary
         run: |
