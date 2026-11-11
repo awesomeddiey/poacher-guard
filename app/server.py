@@ -320,6 +320,11 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             clients.discard(sock)
 
     app.mount("/snapshots", StaticFiles(directory=str(snap_dir)), name="snapshots")
+    # browser flasher (ESP Web Tools): http://localhost:8000/web-flasher/ writes the node program over Web Serial
+    if (ROOT / "web-flasher").exists():
+        (ROOT / "firmware" / "build").mkdir(parents=True, exist_ok=True)
+        app.mount("/firmware/build", StaticFiles(directory=str(ROOT / "firmware" / "build")), name="firmware")
+        app.mount("/web-flasher", StaticFiles(directory=str(ROOT / "web-flasher"), html=True), name="web-flasher")
 
     @app.get("/")
     def index():

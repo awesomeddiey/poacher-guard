@@ -69,3 +69,13 @@ def test_test_sms_and_flash_without_hardware(tmp_path):
                 break
             time.sleep(0.1)
         assert f["state"] == "error" and ("No ESP32 found" in f["message"] or "not on this PC" in f["message"])
+
+
+def test_browser_flasher_is_served(tmp_path):
+    with app_client(tmp_path) as c:
+        assert "esp-web-install-button" in c.get("/web-flasher/").text
+        m = c.get("/web-flasher/manifest.json").json()
+        assert m["builds"][0]["chipFamily"] == "ESP32" and m["builds"][0]["parts"][0]["offset"] == 0
+        assert c.get("/web-flasher/vendor/install-button.js").status_code == 200
+        fw = c.get("/firmware/build/flame_gsm_node.ino.merged.bin")
+        assert fw.status_code == 200 and fw.content[0x1000] == 0xE9          # bootloader where a classic ESP32 expects it
