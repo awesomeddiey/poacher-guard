@@ -51,3 +51,24 @@ jobs:
         run: |
           cd $env:USERPROFILE\poacher-guard
           .\.venv\Scripts\python.exe tools\update.py --skip run-poacher-guard.bat
+
+  flasher:
+    # FLASH-ESP32-NODE.bat on a clean Windows machine with no board: it must download esptool and the
+    # node program, then stop with the "No ESP32 found" help instead of crashing.
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run the one-click flasher without a board
+        shell: pwsh
+        run: |
+          curl.exe -sL -o "$env:TEMP\FLASH-ESP32-NODE.bat" "https://raw.githubusercontent.com/awesomeddiey/poacher-guard/$env:GITHUB_SHA/FLASH-ESP32-NODE.bat"
+          $out = (cmd /c "echo.| `"$env:TEMP\FLASH-ESP32-NODE.bat`"" 2>&1) | Out-String
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($out -notmatch 'No ESP32 found') { throw "expected the 'No ESP32 found' message (exit $code)" }
+          $exe = Get-ChildItem "$env:LOCALAPPDATA\PoacherGuardFlasher" -Recurse -Filter esptool.exe | Select-Object -First 1
+          if (-not $exe) { throw 'esptool.exe was not downloaded' }
+          & $exe.FullName version
+          $fw = Get-Item "$env:LOCALAPPDATA\PoacherGuardFlasher\flame_gsm_node.ino.merged.bin"
+          if ($fw.Length -ne 4194304) { throw "firmware size $($fw.Length)" }
+          Write-Host "OK: esptool $($exe.FullName), firmware $($fw.Length) bytes, exit code $code"
