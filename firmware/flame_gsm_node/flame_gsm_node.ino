@@ -46,6 +46,7 @@ HardwareSerial gsm(2);
 Preferences prefs;
 String phones[MAX_PHONES];
 int nPhones = 0;
+String smsPrefix = "To Mr Clayton from Mr Ncube: ";   // how texts start; replaced by @NAMES from the dashboard
 BLECharacteristic* txChar = nullptr;
 volatile bool bleConnected = false, sendHello = false;
 String rxBuf;
@@ -160,7 +161,7 @@ class RxCallbacks : public BLECharacteristicCallbacks {
     while ((nl = rxBuf.indexOf('\n')) >= 0) {
       String line = rxBuf.substring(0, nl); rxBuf = rxBuf.substring(nl + 1);
       line.trim();
-      if ((line.startsWith("@SMS,") || line.startsWith("@PHONES,") || line == "@TEST") && inboxN < 4) { inbox[inboxN] = line; inboxN = inboxN + 1; }
+      if ((line.startsWith("@SMS,") || line.startsWith("@PHONES,") || line.startsWith("@NAMES,") || line == "@TEST") && inboxN < 4) { inbox[inboxN] = line; inboxN = inboxN + 1; }
     }
     if (rxBuf.length() > 400) rxBuf = "";                     // garbage: start over
   }
@@ -196,9 +197,15 @@ void handleCommand(const String& line) {
     bleSend(String("@CFG,phones=") + nPhones + "\n");
     return;
   }
+  if (line.startsWith("@NAMES,")) {
+    String p = line.substring(7);                   // trim() in onWrite removed the trailing space: put it back
+    if (p.length() && !p.endsWith(" ")) p += " ";
+    if (p != smsPrefix) { smsPrefix = p; prefs.putString("prefix", smsPrefix); Serial.printf("[CFG] texts start with: %s\n", smsPrefix.c_str()); }
+    return;
+  }
   if (line == "@TEST") {
     smsSent[3] = false;                             // a test always goes out, and does not hold back real alerts
-    int r = textAll(3, String("POACHER GUARD test message | NODE: ") + NODE_ID + " | SMS alerts work");
+    int r = textAll(3, smsPrefix + "POACHER GUARD test message | NODE: " + NODE_ID + " | SMS alerts work");
     bleSend(String("@SMS,") + (r > 0 ? "ok" : "fail") + ",test\n");
     return;
   }
@@ -218,11 +225,12 @@ void setup() {
   delay(3000);                                  // let the GSM module start
   prefs.begin("pguard", false);
   loadPhones(prefs.getString("phones", ""));
+  smsPrefix = prefs.getString("prefix", smsPrefix);
   Serial.printf("[CFG] %d phone number(s): %s\n", nPhones, nPhones ? phonesList().c_str() : "none - set one on the dashboard");
   gsmReady = gsmInit();
   startBluetooth();
   if (TEXT_ON_BOOT && gsmReady)
-    for (int i = 0; i < nPhones; i++) sendSms(phones[i].c_str(), String("POACHER GUARD | NODE: ") + NODE_ID + " online | text alerts active");
+    for (int i = 0; i < nPhones; i++) sendSms(phones[i].c_str(), smsPrefix + "POACHER GUARD | NODE: " + NODE_ID + " online | text alerts active");
   Serial.println("[SYSTEM] ready");
 }
 
@@ -243,7 +251,7 @@ void loop() {
     lastFire = fire;
     Serial.printf("[FLAME] %s\n", fire ? "FIRE" : "clear");
     bleSend(String("@FLAME,") + (fire ? "1" : "0") + "\n");               // tell the PC first: the text below takes seconds
-    if (fire) textAll(0, String("THREAT: FIRE - flame detected | NODE: ") + NODE_ID + " | check the area now");
+    if (fire) textAll(0, smsPrefix + "THREAT: FIRE - flame detected | NODE: " + NODE_ID + " | check the area now");
     lastBeat = millis();
   }
 

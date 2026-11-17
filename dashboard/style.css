@@ -140,7 +140,8 @@ ul{list-style:none;margin:0;padding:0}
 #setup{margin-top:20px}
 .fl{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:4px 0 6px}
 .inrow{display:flex;gap:10px;align-items:center}.inrow.btns{margin-top:12px;flex-wrap:wrap}
-#phones,#g-detector{flex:1;width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:#fff;color:var(--ink)}
+.inrow.names{gap:12px;margin-bottom:2px}.inrow.names>div{flex:1}
+#phones,#g-detector,.tin{flex:1;width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:#fff;color:var(--ink)}
 #phones:focus,#g-detector:focus{outline:2px solid var(--blue-100);border-color:var(--blue)}
 .pri{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:10px 18px;font-weight:700}.pri:hover{background:var(--blue-d)}
 button:disabled{opacity:.45;cursor:not-allowed}

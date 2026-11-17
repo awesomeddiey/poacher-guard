@@ -79,3 +79,15 @@ def test_browser_flasher_is_served(tmp_path):
         assert c.get("/web-flasher/vendor/install-button.js").status_code == 200
         fw = c.get("/firmware/build/flame_gsm_node.ino.merged.bin")
         assert fw.status_code == 200 and fw.content[0x1000] == 0xE9          # bootloader where a classic ESP32 expects it
+
+
+def test_names_in_texts(tmp_path):
+    with app_client(tmp_path) as c:
+        s = c.get("/api/settings").json()
+        assert s["recipient"] == "Mr Clayton" and s["sender"] == "Mr Ncube" and s["prefix"] == "To Mr Clayton from Mr Ncube: "
+        r = c.post("/api/settings", json={"recipient": "  Ranger  Moyo ", "sender": "HQ"}).json()
+        assert r["prefix"] == "To Ranger Moyo from HQ: "
+        assert c.post("/api/settings", json={"sender": "x" * 31}).status_code == 400
+        start = int(c.get("/api/sms").text.split()[0]); c.post("/api/simulate/poacher")
+        text = c.get(f"/api/sms?after={start}&node=SIM8008").text.strip().split("\n")[1].split("\t")[2]
+        assert text.startswith("To Ranger Moyo from HQ: THREAT: POACHER ALERT") and len(text) <= 160 and "| NODE: SIM8008 |" in text

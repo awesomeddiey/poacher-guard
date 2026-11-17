@@ -34,6 +34,15 @@ def local_format(intl: str) -> str:
     return "0" + intl[4:] if intl.startswith("+263") else intl
 
 
+def clean_name(raw: Any) -> str:
+    """A name for the texts: plain letters, at most 30 characters (texts use the basic GSM alphabet)."""
+    s = " ".join(str(raw).split())
+    s = "".join(c for c in s if c.isascii() and c.isprintable() and c not in "@\\")
+    if len(s) > 30:
+        raise ValueError("Names can be at most 30 characters")
+    return s
+
+
 TUNING_LIMITS = {                       # name: (min, max)
     "threshold": (0.05, 0.95),          # YAMNet gunshot score that raises an alert
     "min_db": (-50.0, -3.0),            # loud-bang: how loud (dBFS)
@@ -47,8 +56,10 @@ class Settings:
     def __init__(self, path: Path, cfg: dict[str, Any]):
         self.path = Path(path)
         a, b = cfg.get("audio", {}), cfg.get("audio", {}).get("bang", {})
+        n = cfg.get("sms", {})
         self.defaults = {
             "phones": [],
+            "sender": str(n.get("sender", "Mr Ncube")), "recipient": str(n.get("recipient", "Mr Clayton")),
             "gunshot": {"detector": a.get("detector", "either"), "threshold": float(a.get("threshold", 0.35)),
                         "min_db": float(b.get("min_db", -20)), "rise_db": float(b.get("rise_db", 15)),
                         "voice_veto": float(b.get("voice_veto", 0.3))},
@@ -60,6 +71,9 @@ class Settings:
             try:
                 saved = json.loads(self.path.read_text())
                 self.data["phones"] = [normalize_phone(p) for p in saved.get("phones", [])]
+                for k in ("sender", "recipient"):
+                    if isinstance(saved.get(k), str):
+                        self.data[k] = clean_name(saved[k])
                 self.data["gunshot"].update({k: v for k, v in saved.get("gunshot", {}).items() if k in self.data["gunshot"]})
             except Exception:  # noqa: BLE001  - a damaged file must not stop the app
                 pass
@@ -70,12 +84,21 @@ class Settings:
         return list(self.data["phones"])
 
     @property
+    def prefix(self) -> str:
+        """Start of every text: 'To Mr Clayton from Mr Ncube: ' (empty parts are left out)."""
+        to, frm = self.data.get("recipient", ""), self.data.get("sender", "")
+        if to and frm:
+            return f"To {to} from {frm}: "
+        return f"To {to}: " if to else (f"From {frm}: " if frm else "")
+
+    @property
     def gunshot(self) -> dict[str, Any]:
         return dict(self.data["gunshot"])
 
     def public(self) -> dict[str, Any]:
         """For the dashboard: numbers in the 07... format, plus the limits and defaults for the sliders."""
-        return {"phones": [local_format(p) for p in self.data["phones"]], "gunshot": self.gunshot,
+        return {"phones": [local_format(p) for p in self.data["phones"]], "sender": self.data["sender"],
+                "recipient": self.data["recipient"], "prefix": self.prefix, "gunshot": self.gunshot,
                 "limits": TUNING_LIMITS, "detectors": DETECTORS, "defaults": self.defaults["gunshot"]}
 
     # ---- changing ------------------------------------------------------------------------------
@@ -98,6 +121,9 @@ class Settings:
                 if len(phones) > 5:
                     raise ValueError("At most 5 phone numbers")
                 new["phones"] = phones
+            for k in ("sender", "recipient"):
+                if k in patch:
+                    new[k] = clean_name(patch[k])
             if patch.get("reset_gunshot"):
                 new["gunshot"] = dict(self.defaults["gunshot"])
             for k, v in (patch.get("gunshot") or {}).items():

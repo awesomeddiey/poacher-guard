@@ -80,7 +80,7 @@ def test_ble_link_flame_text_and_reconnect(monkeypatch):
         assert w.send_sms("poacher", text)
         assert wait_until(lambda: b"".join(node["written"]).endswith(b"31.05220\n"))
         sent = b"".join(node["written"]).decode()
-        assert sent == f"@PHONES,+263772109787\n@SMS,poacher,{text}\n"          # numbers first, on connect
+        assert sent == f"@PHONES,+263772109787\n@NAMES,\n@SMS,poacher,{text}\n"   # numbers and names first, on connect
         assert all(len(p) <= CHUNK for p in node["written"])
         assert w.test_sms() and wait_until(lambda: b"".join(node["written"]).endswith(b"@TEST\n"))
 

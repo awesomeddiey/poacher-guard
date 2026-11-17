@@ -62,6 +62,11 @@
   <section class="grid" id="setup">
     <article class="card" id="smscard">
       <div class="card-h"><h2>SMS alerts &amp; sensor node</h2><span class="sub" id="node-sub"></span></div>
+      <div class="inrow names">
+        <div><label class="fl" for="sms-to">To</label><input id="sms-to" class="tin" type="text" maxlength="30" placeholder="Mr Clayton"></div>
+        <div><label class="fl" for="sms-from">From</label><input id="sms-from" class="tin" type="text" maxlength="30" placeholder="Mr Ncube"></div>
+      </div>
+      <p class="hint" id="sms-preview"></p>
       <label class="fl" for="phones">Phone number(s) that get the alert texts</label>
       <div class="inrow">
         <input id="phones" type="text" inputmode="tel" placeholder="0772109787" autocomplete="off">

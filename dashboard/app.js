@@ -383,6 +383,8 @@ async function loadSettings() {
 }
 function fillSettings() {
   $("phones").value = cfgS.phones.join(", ");
+  $("sms-to").value = cfgS.recipient || ""; $("sms-from").value = cfgS.sender || "";
+  smsPreview();
   $("g-detector").value = cfgS.gunshot.detector;
   document.querySelectorAll(".tune").forEach((t) => {
     const k = t.dataset.k, inp = t.querySelector("input");
@@ -425,12 +427,18 @@ function renderSetup() {
 }
 $("save-phones").onclick = async () => {
   try {
-    cfgS = { ...cfgS, ...(await api("/api/settings", { phones: $("phones").value })) }; fillSettings();
+    cfgS = { ...cfgS, ...(await api("/api/settings", { phones: $("phones").value, recipient: $("sms-to").value, sender: $("sms-from").value })) }; fillSettings();
     setMsg("sms-msg", cfgS.phones.length ? `Saved: ${cfgS.phones.join(", ")}` +
       (status && status.node_link && status.node_link.running ? " - sent to the node" : " - the node gets it when it connects") : "Saved: no numbers", true);
   } catch (e) { setMsg("sms-msg", e.message, false); }
 };
 $("phones").onkeydown = (e) => { if (e.key === "Enter") $("save-phones").click(); };
+function smsPreview() {
+  const to = $("sms-to").value.trim(), frm = $("sms-from").value.trim();
+  const p = to && frm ? `To ${to} from ${frm}: ` : to ? `To ${to}: ` : frm ? `From ${frm}: ` : "";
+  $("sms-preview").textContent = `Texts read: "${p}THREAT: POACHER ALERT - 1 unauthorised person... | NODE: SIM8008 | 14:05 | map link"`;
+}
+["sms-to", "sms-from"].forEach((id) => { $(id).oninput = smsPreview; $(id).onkeydown = (e) => { if (e.key === "Enter") $("save-phones").click(); }; });
 $("test-sms").onclick = async () => {
   try { setMsg("sms-msg", (await api("/api/node/test-sms", {})).message, true); } catch (e) { setMsg("sms-msg", e.message, false); }
 };

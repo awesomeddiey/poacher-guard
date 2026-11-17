@@ -8,6 +8,7 @@ Every protocol line starts with "@" and ends with a newline (other lines the nod
                @SMS,<ok|fail|skipped>,<kind>  result of a text the PC asked for
   PC -> node   @SMS,<poacher|gunshot>,<text>  "send this text to the rangers" (the node adds its own repeat limit)
                @PHONES,<+2637...;+2637...>    the numbers to text (set on the dashboard); the node stores them
+               @NAMES,<text>                  how every text starts, e.g. "To Mr Clayton from Mr Ncube: " (stored)
                @TEST                          send a test text to every number now
 """
 
@@ -71,12 +72,20 @@ class NodeProtocolMixin:
     def push_phones(self, phones: list[str]) -> bool:
         return self.send_raw(phones_line(phones))
 
+    def push_prefix(self, prefix: str) -> bool:
+        return self.send_raw(names_line(prefix))
+
     def test_sms(self) -> bool:
         return self.send_raw(b"@TEST\n")
 
 
 def phones_line(phones: list[str]) -> bytes:
     return ("@PHONES," + ";".join(p for p in phones if p) + "\n").encode("ascii")
+
+
+def names_line(prefix: str) -> bytes:
+    text = "".join(c if 32 <= ord(c) < 127 else " " for c in prefix)[:70]
+    return f"@NAMES,{text}\n".encode("ascii")
 
 
 def ascii_line(kind: str, text: str) -> bytes:

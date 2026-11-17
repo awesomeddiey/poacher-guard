@@ -20,7 +20,7 @@ import threading
 import time
 from typing import Any
 
-from .node_protocol import NodeProtocolMixin, new_status, phones_line
+from .node_protocol import NodeProtocolMixin, names_line, new_status, phones_line
 
 log = logging.getLogger("node-usb")
 
@@ -29,8 +29,9 @@ ESP_VIDS = {0x10C4, 0x1A86, 0x303A, 0x0403, 0x067B}
 
 
 class SerialNodeWorker(NodeProtocolMixin, threading.Thread):
-    def __init__(self, cfg: dict[str, Any], engine, node_id: str, phones=lambda: []):
+    def __init__(self, cfg: dict[str, Any], engine, node_id: str, phones=lambda: [], prefix=lambda: ""):
         super().__init__(daemon=True, name="node-usb")
+        self.prefix = prefix
         self.phones = phones
         self.cfg, self.engine, self.node_id = cfg, engine, node_id
         self._stop_evt = threading.Event()
@@ -116,6 +117,7 @@ class SerialNodeWorker(NodeProtocolMixin, threading.Thread):
             self._ser = ser
             self.status.update(running=True, error=None)
             self.send_raw(phones_line(self.phones()))
+            self.send_raw(names_line(self.prefix()))
             log.info("ESP32 node on %s", self.status["port"])
             try:
                 while not self._stop_evt.is_set():

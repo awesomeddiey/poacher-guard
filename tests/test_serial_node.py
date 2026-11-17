@@ -78,7 +78,8 @@ def test_usb_node_reports_flame_and_receives_poacher_texts(tmp_path):
         assert any(e["type"] == "fire" for e in c.get("/api/events").json())
 
         c.post("/api/simulate/poacher")                               # the PC's models see a poacher
-        assert wait(lambda: any(g.startswith("@SMS,poacher,THREAT: POACHER ALERT") for g in node.got)), node.got
+        assert wait(lambda: any(g.startswith("@SMS,poacher,To Mr Clayton from Mr Ncube: THREAT: POACHER ALERT") for g in node.got)), node.got
+        assert "@NAMES,To Mr Clayton from Mr Ncube: " in node.got and any(g.startswith("@PHONES,") for g in node.got)
         line = [g for g in node.got if g.startswith("@SMS,poacher,")][0]
         assert "| NODE: SIM8008 |" in line and len(line.split(",", 2)[2]) <= 160
         assert st()["node_link"]["texts_asked"] >= 1

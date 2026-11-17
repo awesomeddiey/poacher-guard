@@ -18,7 +18,7 @@ import threading
 import time
 from typing import Any
 
-from .node_protocol import NodeProtocolMixin, new_status, phones_line
+from .node_protocol import NodeProtocolMixin, names_line, new_status, phones_line
 
 log = logging.getLogger("node-ble")
 
@@ -29,8 +29,9 @@ CHUNK = 20
 
 
 class BleNodeWorker(NodeProtocolMixin, threading.Thread):
-    def __init__(self, cfg: dict[str, Any], engine, node_id: str, phones=lambda: []):
+    def __init__(self, cfg: dict[str, Any], engine, node_id: str, phones=lambda: [], prefix=lambda: ""):
         super().__init__(daemon=True, name="node-ble")
+        self.prefix = prefix
         self.phones = phones                # callable: the numbers to give the node on every connect
         self.cfg, self.engine, self.node_id = cfg, engine, node_id
         self.name = str(cfg.get("name") or node_id)
@@ -111,6 +112,7 @@ class BleNodeWorker(NodeProtocolMixin, threading.Thread):
             self._connected = True
             self.status.update(running=True, error=None, last_seen=time.time())
             await self._queue.put(phones_line(self.phones()))       # the node always gets the current numbers
+            await self._queue.put(names_line(self.prefix()))        # ... and how its texts start
             log.info("connected to node %s (%s)", self.name, dev.address)
             while not gone.is_set() and not self._stop_evt.is_set():
                 try:

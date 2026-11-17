@@ -2,11 +2,19 @@
 # Edit this file to match your hardware and site. Restart after changes.
 
 site:
-  name: "Demo Conservancy - Sector A"
+  name: "Hwange National Park - Main Camp"
   # Where the camera/laptop node is installed. Every alert is stamped with
-  # these coordinates (decimal degrees). Replace with your real position.
-  lat: -17.8292
-  lon: 31.0522
+  # these coordinates (decimal degrees). Approximate position of Hwange Main
+  # Camp (the park's north-eastern edge); the park lies to the south and west.
+  # Replace with the real GPS reading of the installation.
+  lat: -18.7320
+  lon: 26.9520
+
+# How every alert text starts: "To Mr Clayton from Mr Ncube: THREAT: ...". Change these on the dashboard.
+# (A text always arrives from the GSM SIM's own number; the names go inside the message.)
+sms:
+  sender: "Mr Ncube"
+  recipient: "Mr Clayton"
 
 server:
   host: 0.0.0.0        # 0.0.0.0 = phones/laptops on the same Wi-Fi can open the dashboard
@@ -108,22 +116,22 @@ flame:
   offline_after_s: 30
   nodes:
     - id: SIM8008          # ESP32 flame + GSM node (firmware/flame_gsm_node, NODE_ID)
-      label: "Sensor node SIM8008"
-      lat: -17.8322
-      lon: 31.0566
+      label: "SIM8008"
+      lat: -18.7375
+      lon: 26.9455
 
 # Other field nodes (camera/sensor units out in the bush). They report in by
 # POSTing to /api/nodes/heartbeat (battery, signal, what they currently see).
 # This laptop is the base node and is always shown highlighted on the map.
 nodes:
   - id: NODE-02
-    label: "Node 2 - north ridge"
-    lat: -17.8246
-    lon: 31.0577
+    label: "Node 2 - western woodland"
+    lat: -18.7410
+    lon: 26.9230
   - id: NODE-03
-    label: "Node 3 - waterhole"
-    lat: -17.8338
-    lon: 31.0481
+    label: "Node 3 - southern waterhole"
+    lat: -18.7600
+    lon: 26.9480
 
 alerts:
   # Minimum seconds between two alerts of the same type, so one intruder

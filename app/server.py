@@ -105,6 +105,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         link = workers.get("node_link")
         if link:
             link.push_phones(data["phones"])
+            link.push_prefix(settings.prefix)
     settings.on_change(_push_phones)
     started = time.time()
 
@@ -125,10 +126,12 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
             node_id = nl.get("node_id") or (cfg["flame"]["nodes"] or [{"id": "SIM8008"}])[0]["id"]
             if nl.get("mode", "ble") == "ble":
                 from .ble_node import BleNodeWorker
-                workers["node_link"] = BleNodeWorker(nl.get("ble", {}), engine, node_id, phones=lambda: settings.phones)
+                workers["node_link"] = BleNodeWorker(nl.get("ble", {}), engine, node_id, phones=lambda: settings.phones,
+                                                     prefix=lambda: settings.prefix)
             elif nl.get("mode") == "usb":
                 from .serial_node import SerialNodeWorker
-                workers["node_link"] = SerialNodeWorker(nl.get("usb", {}), engine, node_id, phones=lambda: settings.phones)
+                workers["node_link"] = SerialNodeWorker(nl.get("usb", {}), engine, node_id, phones=lambda: settings.phones,
+                                                        prefix=lambda: settings.prefix)
             for w in workers.values():
                 w.start()
         yield
@@ -171,8 +174,9 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         title = e["title"].encode("ascii", "replace").decode().replace("?", "-")
         name = "".join(ch for ch in (node or cfg["site"]["name"]) if ch.isascii() and ch.isprintable())[:20]
         tail = (f" | NODE: {name} | {time.strftime('%H:%M', time.localtime(e['ts']))}"
-                f" | maps.google.com/?q={e['lat']:.5f},{e['lon']:.5f}")
-        return "THREAT: " + title[:160 - len("THREAT: ") - len(tail)] + tail
+                f" | maps.google.com/?q={e['lat']:.4f},{e['lon']:.4f}")
+        head = settings.prefix + "THREAT: "
+        return head + title[:max(20, 160 - len(head) - len(tail))] + tail
 
     # ---- settings from the dashboard (only on this PC: other devices on the network can look, not change) ----
     def _local(request: Request) -> bool:
@@ -206,6 +210,7 @@ def create_app(cfg: dict[str, Any] | None = None, start_workers: bool = True) ->
         if not (link and link.status.get("running")):
             raise HTTPException(409, "The sensor node is not connected. Power it on and keep it within Bluetooth range of this PC.")
         link.push_phones(settings.phones)
+        link.push_prefix(settings.prefix)
         link.test_sms()
         return {"ok": True, "message": f"Asked the node to text {', '.join(settings.public()['phones'])}. It takes up to 30 seconds."}
 
